@@ -179,7 +179,7 @@ export default function AddMealModal({
             const fit = recipeFitLabel(recipe, chosen);
             return (
               <button type="button" aria-pressed={chosen} className={`recipe-result ${chosen ? "selected" : ""}`} key={recipe.id} onClick={() => toggleRecipe(recipe.id)}>
-                {image ? <img src={image} alt="" /> : <span className="recipe-placeholder">{recipe.name.slice(0, 1)}</span>}
+                {image ? <img src={image} alt="" loading="lazy" decoding="async" /> : <span className="recipe-placeholder">{recipe.name.slice(0, 1)}</span>}
                 <span className="recipe-result-copy">
                   <strong>{recipe.name}</strong>
                   <small>{formatAmount(recipe.calories, 1)} kcal · {formatAmount(recipe.protein, 1)} g protein · {formatAmount(recipe.sodium, 1)} mg sodium</small>

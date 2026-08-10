@@ -187,7 +187,7 @@ function TodayView({ profile, entries, recipesById, totals, onOpenMeal, onOpenCu
       </section>
 
       <aside className="dashboard-rail">
-        <section className="idea-list"><header><h2>Low-sodium ideas</h2><button type="button" onClick={() => onOpenMeal()}>View all</button></header>{ideas.map((recipe) => <button className="idea-row" type="button" key={recipe.id} onClick={() => onOpenMeal(recipe.id)}>{recipeImages[recipe.id] ? <img src={recipeImages[recipe.id]} alt="" /> : <span className="recipe-placeholder">{recipe.name.slice(0, 1)}</span>}<span><strong>{recipe.name}</strong><small>{formatAmount(recipe.sodium, 1)} mg sodium · {formatAmount(recipe.protein, 1)} g protein</small></span><ChevronRight size={19} /></button>)}</section>
+        <section className="idea-list"><header><h2>Low-sodium ideas</h2><button type="button" onClick={() => onOpenMeal()}>View all</button></header>{ideas.map((recipe) => <button className="idea-row" type="button" key={recipe.id} onClick={() => onOpenMeal(recipe.id)}>{recipeImages[recipe.id] ? <img src={recipeImages[recipe.id]} alt="" loading="lazy" decoding="async" /> : <span className="recipe-placeholder">{recipe.name.slice(0, 1)}</span>}<span><strong>{recipe.name}</strong><small>{formatAmount(recipe.sodium, 1)} mg sodium · {formatAmount(recipe.protein, 1)} g protein</small></span><ChevronRight size={19} /></button>)}</section>
         <section className="plan-summary">
           <header><h2>Your plan</h2><button type="button" onClick={onOpenProfile}>Edit</button></header>
           <p className="plan-context">{profile.condition} · CKD {profile.stage} · {formatAmount(profile.weightKg, 1)} kg</p>

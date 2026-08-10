@@ -23,7 +23,7 @@ export default function MealRow({ meal, recipe, onRemove }) {
       </div>
       <div className="meal-recipe">
         {image ? (
-          <img src={image} alt="" />
+          <img src={image} alt="" loading="lazy" decoding="async" />
         ) : (
           <div className="recipe-placeholder" aria-hidden="true">{meal.source === "custom" ? <Package size={20} /> : item.name.slice(0, 1)}</div>
         )}

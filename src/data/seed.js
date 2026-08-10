@@ -1,4 +1,5 @@
 import { localDateKey } from "../utils/nutrition";
+import recipes from "./recipes.json";
 
 export const defaultProfile = {
   name: "Alex",
@@ -44,12 +45,6 @@ export const defaultMeals = [
   },
 ];
 
-export const recipeImages = {
-  "fresh-tzatziki": "/recipes/fresh-tzatziki.png",
-  "chicken-and-spanish-rice": "/recipes/chicken-and-spanish-rice.png",
-  "grilled-salmon-with-papaya-mint-salsa":
-    "/recipes/grilled-salmon-with-papaya-mint-salsa.png",
-  "quinoa-with-black-beans-and-avocado":
-    "/recipes/quinoa-with-black-beans-and-avocado.png",
-  "roasted-garlic": "/recipes/roasted-garlic.png",
-};
+export const recipeImages = Object.fromEntries(
+  recipes.map(({ id }) => [id, `/recipes/${id}.webp`]),
+);

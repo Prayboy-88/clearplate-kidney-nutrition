@@ -2,9 +2,10 @@ import { Check, Minus, Plus, Search, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { recipeImages } from "../data/seed";
 import recipeDetails from "../data/recipeDetails.json";
+import { mealSections } from "../utils/meals";
 import { formatAmount, nutritionFor } from "../utils/nutrition";
 
-const meals = ["Breakfast", "Lunch", "Dinner", "Snack"];
+const meals = mealSections.map(({ name }) => name);
 const courseFilters = [
   { value: "all", label: "All courses" },
   { value: "appetizers", label: "Appetizers", categories: ["Appetizers"] },
@@ -22,6 +23,7 @@ export default function AddMealModal({
   open,
   recipes,
   initialRecipeId,
+  initialMeal,
   todayTotals = emptyTotals,
   profile,
   onClose,
@@ -41,8 +43,9 @@ export default function AddMealModal({
       setDietFilter("all");
       setCourseFilter("all");
       setServings(1);
+      setMeal(initialMeal || "Lunch");
     }
-  }, [open, initialRecipeId]);
+  }, [open, initialMeal, initialRecipeId]);
 
   const results = useMemo(() => {
     const query = search.trim().toLowerCase();

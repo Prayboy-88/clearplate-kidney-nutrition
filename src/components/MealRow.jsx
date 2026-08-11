@@ -1,58 +1,64 @@
-import { Apple, Coffee, MoonStar, Package, Sun, Trash2 } from "lucide-react";
+import { GripVertical, Package, Trash2 } from "lucide-react";
 import { recipeImages } from "../data/seed";
 import { formatAmount, nutritionFor } from "../utils/nutrition";
 
-const mealIcons = {
-  Breakfast: Coffee,
-  Lunch: Sun,
-  Dinner: MoonStar,
-  Snack: Apple,
-};
-
-export default function MealRow({ meal, recipe, onOpenDetails, onRemove }) {
-  const Icon = mealIcons[meal.meal] ?? Coffee;
+export default function MealRow({
+  meal,
+  recipe,
+  editMode = false,
+  isDragging = false,
+  isDropTarget = false,
+  onOpenDetails,
+  onRemove,
+  onDragPointerDown,
+  onDragPointerMove,
+  onDragPointerUp,
+  onDragPointerCancel,
+}) {
   const item = meal.source === "custom" ? meal.customFood : recipe;
   const nutrients = nutritionFor(item, meal.servings);
   const image = recipeImages[item.id];
 
+  const content = (
+    <>
+      <div className="meal-recipe">
+        {image ? <img src={image} alt="" loading="lazy" decoding="async" /> : <div className="recipe-placeholder" aria-hidden="true">{meal.source === "custom" ? <Package size={20} /> : item.name.slice(0, 1)}</div>}
+        <div><strong>{item.name}</strong><small>{formatAmount(meal.servings, 1)} serving{meal.servings === 1 ? "" : "s"}{meal.source === "custom" ? ` · ${item.methodLabel}` : onOpenDetails ? " · View recipe" : ""}</small></div>
+      </div>
+      <div className="meal-nutrient"><strong>{formatAmount(nutrients.sodium, 1)} mg</strong><small>sodium</small></div>
+      <div className="meal-nutrient"><strong>{formatAmount(nutrients.protein, 1)} g</strong><small>protein</small></div>
+      <div className="meal-mobile-nutrients">{formatAmount(nutrients.sodium, 1)} mg sodium · {formatAmount(nutrients.protein, 1)} g protein</div>
+    </>
+  );
+
   return (
-    <article className={`meal-row${onOpenDetails ? " recipe-row-clickable" : ""}`}>
-      {onOpenDetails ? (
-        <button className="meal-row-open" type="button" onClick={onOpenDetails} aria-label={`Open ingredients and cooking instructions for ${item.name}`}>
-          <div className="meal-time">
-            <span className="timeline-icon"><Icon size={21} strokeWidth={1.7} /></span>
-            <div><strong>{meal.meal}</strong><small>{meal.time}</small></div>
-          </div>
-          <div className="meal-recipe">
-            {image ? <img src={image} alt="" loading="lazy" decoding="async" /> : <div className="recipe-placeholder" aria-hidden="true">{item.name.slice(0, 1)}</div>}
-            <div><strong>{item.name}</strong><small>{formatAmount(meal.servings, 1)} serving{meal.servings === 1 ? "" : "s"} · View recipe</small></div>
-          </div>
-          <div className="meal-nutrient"><strong>{formatAmount(nutrients.sodium, 1)} mg</strong><small>sodium</small></div>
-          <div className="meal-nutrient"><strong>{formatAmount(nutrients.protein, 1)} g</strong><small>protein</small></div>
-          <div className="meal-mobile-nutrients">
-            {formatAmount(nutrients.sodium, 1)} mg sodium · {formatAmount(nutrients.protein, 1)} g protein
-          </div>
+    <article
+      className={`meal-row${onOpenDetails && !editMode ? " recipe-row-clickable" : ""}${editMode ? " edit-row" : ""}${isDragging ? " dragging" : ""}${isDropTarget ? " drop-target" : ""}`}
+      data-entry-id={meal.id}
+    >
+      {editMode && (
+        <button
+          className="meal-drag-handle"
+          type="button"
+          aria-label={`Drag ${item.name} to another meal`}
+          onPointerDown={onDragPointerDown}
+          onPointerMove={onDragPointerMove}
+          onPointerUp={onDragPointerUp}
+          onPointerCancel={onDragPointerCancel}
+        >
+          <GripVertical size={19} />
         </button>
-      ) : (
-        <div className="meal-row-static">
-          <div className="meal-time">
-            <span className="timeline-icon"><Icon size={21} strokeWidth={1.7} /></span>
-            <div><strong>{meal.meal}</strong><small>{meal.time}</small></div>
-          </div>
-          <div className="meal-recipe">
-            {image ? <img src={image} alt="" loading="lazy" decoding="async" /> : <div className="recipe-placeholder" aria-hidden="true">{meal.source === "custom" ? <Package size={20} /> : item.name.slice(0, 1)}</div>}
-            <div><strong>{item.name}</strong><small>{formatAmount(meal.servings, 1)} serving{meal.servings === 1 ? "" : "s"}{meal.source === "custom" ? ` · ${item.methodLabel}` : ""}</small></div>
-          </div>
-          <div className="meal-nutrient"><strong>{formatAmount(nutrients.sodium, 1)} mg</strong><small>sodium</small></div>
-          <div className="meal-nutrient"><strong>{formatAmount(nutrients.protein, 1)} g</strong><small>protein</small></div>
-          <div className="meal-mobile-nutrients">
-            {formatAmount(nutrients.sodium, 1)} mg sodium · {formatAmount(nutrients.protein, 1)} g protein
-          </div>
-        </div>
       )}
-      <button className="icon-button meal-menu" type="button" onClick={() => onRemove(meal.id)} aria-label={`Remove ${item.name}`}>
-        <Trash2 size={19} strokeWidth={1.8} />
-      </button>
+      {onOpenDetails && !editMode ? (
+        <button className="meal-row-open" type="button" onClick={onOpenDetails} aria-label={`Open ingredients and cooking instructions for ${item.name}`}>{content}</button>
+      ) : (
+        <div className="meal-row-static">{content}</div>
+      )}
+      {editMode ? (
+        <button className="icon-button meal-menu" type="button" onClick={() => onRemove(meal.id)} aria-label={`Remove ${item.name}`}><Trash2 size={18} strokeWidth={1.8} /></button>
+      ) : (
+        <button className="icon-button meal-menu" type="button" onClick={() => onRemove(meal.id)} aria-label={`Remove ${item.name}`}><Trash2 size={19} strokeWidth={1.8} /></button>
+      )}
     </article>
   );
 }

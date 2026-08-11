@@ -17,28 +17,28 @@ import AddMealModal from "./components/AddMealModal";
 import CustomFoodModal from "./components/CustomFoodModal";
 import HistoryView from "./components/HistoryView";
 import Logo from "./components/Logo";
-import MealRow from "./components/MealRow";
 import NutrientProgress from "./components/NutrientProgress";
 import PlannerView from "./components/PlannerView";
 import ProfileDrawer from "./components/ProfileDrawer";
 import RecipeLibrary from "./components/RecipeLibrary";
 import RecipeDetailView from "./components/RecipeDetailView";
+import TodayMeals from "./components/TodayMeals";
 import recipes from "./data/recipes.json";
 import recipeDetails from "./data/recipeDetails.json";
 import { defaultMeals, defaultProfile, recipeImages } from "./data/seed";
+import { mealTimes, nextSortOrder, normalizeEntryOrder, reorderMealEntries } from "./utils/meals";
 import { formatAmount, localDateKey, mealTotals } from "./utils/nutrition";
 
 const appStorageKey = "clearplate-adpkd-mvp-v3";
-const mealTimes = { Breakfast: "7:30 AM", Lunch: "12:30 PM", Dinner: "6:30 PM", Snack: "3:30 PM" };
 
 function loadInitialState() {
   try {
     const saved = JSON.parse(localStorage.getItem(appStorageKey));
-    if (saved?.profile && Array.isArray(saved.entries)) return saved;
+    if (saved?.profile && Array.isArray(saved.entries)) return { ...saved, entries: normalizeEntryOrder(saved.entries) };
   } catch {
     // Fall back to auditable demo data if local storage is unavailable or corrupt.
   }
-  return { profile: defaultProfile, entries: defaultMeals };
+  return { profile: defaultProfile, entries: normalizeEntryOrder(defaultMeals) };
 }
 
 export default function App() {
@@ -46,7 +46,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState("today");
   const [profile, setProfile] = useState(initial.profile);
   const [entries, setEntries] = useState(initial.entries);
-  const [mealDialog, setMealDialog] = useState({ open: false, recipeId: null });
+  const [mealDialog, setMealDialog] = useState({ open: false, recipeId: null, initialMeal: null });
   const [customDialog, setCustomDialog] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [detailView, setDetailView] = useState(null);
@@ -60,19 +60,25 @@ export default function App() {
   };
 
   const addRecipes = (items) => {
-    const nextItems = items.map(({ recipeId, servings, meal }, index) => ({
-      id: `recipe-${Date.now()}-${index}`,
-      date: today,
-      source: "recipe",
-      recipeId,
-      servings,
-      meal,
-      time: mealTimes[meal],
-    }));
+    const nextByMeal = new Map();
+    const nextItems = items.map(({ recipeId, servings, meal }, index) => {
+      const sortOrder = nextByMeal.get(meal) ?? nextSortOrder(entries, today, meal);
+      nextByMeal.set(meal, sortOrder + 1);
+      return {
+        id: `recipe-${Date.now()}-${index}`,
+        date: today,
+        source: "recipe",
+        recipeId,
+        servings,
+        meal,
+        time: mealTimes[meal],
+        sortOrder,
+      };
+    });
     const next = [...entries, ...nextItems];
     setEntries(next);
     persist(profile, next);
-    setMealDialog({ open: false, recipeId: null });
+    setMealDialog({ open: false, recipeId: null, initialMeal: null });
     setActiveTab("today");
   };
 
@@ -85,6 +91,7 @@ export default function App() {
       servings,
       meal,
       time: mealTimes[meal],
+      sortOrder: nextSortOrder(entries, today, meal),
     }];
     setEntries(next);
     persist(profile, next);
@@ -113,6 +120,7 @@ export default function App() {
       servings: 1,
       meal: mealNames[index],
       time: mealTimes[mealNames[index]],
+      sortOrder: nextSortOrder(entries, today, mealNames[index]),
     }));
     const next = [...entries, ...nextItems];
     setEntries(next);
@@ -123,6 +131,17 @@ export default function App() {
   const openRecipeDetails = (entry) => {
     setDetailView({ recipeId: entry.recipeId, servings: entry.servings });
     setActiveTab("recipe-detail");
+  };
+
+  const openMealDialog = (recipeId = null, initialMeal = null) => {
+    setMealDialog({ open: true, recipeId, initialMeal });
+  };
+
+  const reorderMealEntry = ({ entryId, targetMeal, targetEntryId = null, targetIndex = null }) => {
+    const next = reorderMealEntries(entries, today, { entryId, targetMeal, targetEntryId, targetIndex });
+    if (next === entries) return;
+    setEntries(next);
+    persist(profile, next);
   };
 
   const navigateTo = (tab) => {
@@ -149,14 +168,15 @@ export default function App() {
         entries={todayEntries}
         recipesById={recipesById}
         totals={totals}
-        onOpenMeal={(recipeId = null) => setMealDialog({ open: true, recipeId })}
+        onOpenMeal={openMealDialog}
         onOpenCustom={() => setCustomDialog(true)}
         onOpenProfile={() => setProfileOpen(true)}
         onOpenRecipe={openRecipeDetails}
         onRemove={removeEntry}
+        onReorder={reorderMealEntry}
       />}
       {activeTab === "planner" && <PlannerView recipes={recipes} profile={profile} onAddPlan={addPlan} />}
-      {activeTab === "recipes" && <RecipeLibrary recipes={recipes} onChoose={(recipe) => setMealDialog({ open: true, recipeId: recipe.id })} />}
+      {activeTab === "recipes" && <RecipeLibrary recipes={recipes} onChoose={(recipe) => openMealDialog(recipe.id)} />}
       {activeTab === "history" && <HistoryView entries={entries} recipesById={recipesById} />}
       {activeTab === "recipe-detail" && detailView && (
         <RecipeDetailView
@@ -169,14 +189,14 @@ export default function App() {
 
       <footer className="medical-footer"><Info size={20} strokeWidth={1.8} /><span>Other nutrient consideration (Ca, Phos, K) should be made individually based on medical conditions. Targets should be reviewed with your kidney care team. This app does not diagnose kidney disease.</span></footer>
 
-      <AddMealModal open={mealDialog.open} recipes={recipes} initialRecipeId={mealDialog.recipeId} todayTotals={totals} profile={profile} onClose={() => setMealDialog({ open: false, recipeId: null })} onAdd={addRecipes} />
+      <AddMealModal open={mealDialog.open} recipes={recipes} initialRecipeId={mealDialog.recipeId} initialMeal={mealDialog.initialMeal} todayTotals={totals} profile={profile} onClose={() => setMealDialog({ open: false, recipeId: null, initialMeal: null })} onAdd={addRecipes} />
       <CustomFoodModal open={customDialog} onClose={() => setCustomDialog(false)} onAdd={addCustomFood} />
       <ProfileDrawer open={profileOpen} profile={profile} onClose={() => setProfileOpen(false)} onSave={saveProfile} />
     </div>
   );
 }
 
-function TodayView({ profile, entries, recipesById, totals, onOpenMeal, onOpenCustom, onOpenProfile, onOpenRecipe, onRemove }) {
+function TodayView({ profile, entries, recipesById, totals, onOpenMeal, onOpenCustom, onOpenProfile, onOpenRecipe, onRemove, onReorder }) {
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
   const displayDate = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
@@ -199,13 +219,7 @@ function TodayView({ profile, entries, recipesById, totals, onOpenMeal, onOpenCu
           <NutrientProgress type="sodium" value={totals.sodium} target={profile.sodiumTargetMg} />
           <NutrientProgress type="protein" value={totals.protein} range={{ min: profile.proteinMinG, max: profile.proteinMaxG }} />
         </div>
-        <section className="today-meals">
-          <h2>Today’s meals</h2>
-          <div className="meal-list">
-            {entries.length ? entries.map((entry) => <MealRow key={entry.id} meal={entry} recipe={recipesById[entry.recipeId]} onOpenDetails={entry.source === "recipe" ? () => onOpenRecipe(entry) : null} onRemove={onRemove} />) : <p className="empty-state">No foods logged today. Add a recipe or an outside food to start.</p>}
-          </div>
-          <button className="add-another" type="button" onClick={() => onOpenMeal()}><span><Plus size={20} /></span> Add another meal</button>
-        </section>
+        <TodayMeals entries={entries} recipesById={recipesById} onAddMeal={(meal) => onOpenMeal(null, meal)} onOpenRecipe={onOpenRecipe} onRemove={onRemove} onReorder={onReorder} />
       </section>
 
       <aside className="dashboard-rail">

@@ -1,6 +1,7 @@
 import { Check, Minus, Plus, Search, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { recipeImages } from "../data/seed";
+import recipeDetails from "../data/recipeDetails.json";
 import { formatAmount, nutritionFor } from "../utils/nutrition";
 
 const meals = ["Breakfast", "Lunch", "Dinner", "Snack"];
@@ -177,12 +178,16 @@ export default function AddMealModal({
             const image = recipeImages[recipe.id];
             const chosen = selectedIds.includes(recipe.id);
             const fit = recipeFitLabel(recipe, chosen);
+            const details = recipeDetails[recipe.id];
             return (
               <button type="button" aria-pressed={chosen} className={`recipe-result ${chosen ? "selected" : ""}`} key={recipe.id} onClick={() => toggleRecipe(recipe.id)}>
                 {image ? <img src={image} alt="" loading="lazy" decoding="async" /> : <span className="recipe-placeholder">{recipe.name.slice(0, 1)}</span>}
                 <span className="recipe-result-copy">
                   <strong>{recipe.name}</strong>
                   <small>{formatAmount(recipe.calories, 1)} kcal · {formatAmount(recipe.protein, 1)} g protein · {formatAmount(recipe.sodium, 1)} mg sodium</small>
+                  {details && <small className="recipe-quick-info"><b>Needs:</b> {details.quickIngredients.join(" · ")}</small>}
+                  {details && <small className="recipe-quick-info method"><b>Method:</b> {details.quickMethod}</small>}
+                  {!details && <small className="recipe-quick-info unavailable">Nutrition data only · preparation details not available yet</small>}
                   <small className={`recipe-fit ${fit.danger ? "danger" : ""}`}>{fit.text}</small>
                 </span>
                 <span className="check-mark">{chosen && <Check size={15} strokeWidth={2.4} />}</span>

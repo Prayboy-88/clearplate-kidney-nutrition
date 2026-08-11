@@ -22,7 +22,9 @@ import NutrientProgress from "./components/NutrientProgress";
 import PlannerView from "./components/PlannerView";
 import ProfileDrawer from "./components/ProfileDrawer";
 import RecipeLibrary from "./components/RecipeLibrary";
+import RecipeDetailView from "./components/RecipeDetailView";
 import recipes from "./data/recipes.json";
+import recipeDetails from "./data/recipeDetails.json";
 import { defaultMeals, defaultProfile, recipeImages } from "./data/seed";
 import { formatAmount, localDateKey, mealTotals } from "./utils/nutrition";
 
@@ -47,6 +49,7 @@ export default function App() {
   const [mealDialog, setMealDialog] = useState({ open: false, recipeId: null });
   const [customDialog, setCustomDialog] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [detailView, setDetailView] = useState(null);
   const today = localDateKey();
   const recipesById = useMemo(() => Object.fromEntries(recipes.map((recipe) => [recipe.id, recipe])), []);
   const todayEntries = entries.filter((entry) => entry.date === today);
@@ -117,15 +120,25 @@ export default function App() {
     setActiveTab("today");
   };
 
+  const openRecipeDetails = (entry) => {
+    setDetailView({ recipeId: entry.recipeId, servings: entry.servings });
+    setActiveTab("recipe-detail");
+  };
+
+  const navigateTo = (tab) => {
+    setActiveTab(tab);
+    if (tab !== "recipe-detail") setDetailView(null);
+  };
+
   return (
     <div className="app-shell">
       <header className="topbar">
-        <button className="logo-button" type="button" onClick={() => setActiveTab("today")}><Logo /></button>
+        <button className="logo-button" type="button" onClick={() => navigateTo("today")}><Logo /></button>
         <nav aria-label="Primary navigation">
-          <button className={activeTab === "today" ? "active" : ""} type="button" onClick={() => setActiveTab("today")}><CalendarDays /> Today</button>
-          <button className={activeTab === "planner" ? "active" : ""} type="button" onClick={() => setActiveTab("planner")}><Utensils /> Plan</button>
-          <button className={activeTab === "recipes" ? "active" : ""} type="button" onClick={() => setActiveTab("recipes")}><BookOpen /> Recipes</button>
-          <button className={activeTab === "history" ? "active" : ""} type="button" onClick={() => setActiveTab("history")}><History /> History</button>
+          <button className={activeTab === "today" || activeTab === "recipe-detail" ? "active" : ""} type="button" onClick={() => navigateTo("today")}><CalendarDays /> Today</button>
+          <button className={activeTab === "planner" ? "active" : ""} type="button" onClick={() => navigateTo("planner")}><Utensils /> Plan</button>
+          <button className={activeTab === "recipes" ? "active" : ""} type="button" onClick={() => navigateTo("recipes")}><BookOpen /> Recipes</button>
+          <button className={activeTab === "history" ? "active" : ""} type="button" onClick={() => navigateTo("history")}><History /> History</button>
           <button type="button" onClick={() => setProfileOpen(true)}><CircleUserRound /> Profile</button>
         </nav>
         <button className="avatar-button" type="button" onClick={() => setProfileOpen(true)} aria-label="Open profile">{profile.name.slice(0, 1).toUpperCase()}</button>
@@ -139,11 +152,20 @@ export default function App() {
         onOpenMeal={(recipeId = null) => setMealDialog({ open: true, recipeId })}
         onOpenCustom={() => setCustomDialog(true)}
         onOpenProfile={() => setProfileOpen(true)}
+        onOpenRecipe={openRecipeDetails}
         onRemove={removeEntry}
       />}
       {activeTab === "planner" && <PlannerView recipes={recipes} profile={profile} onAddPlan={addPlan} />}
       {activeTab === "recipes" && <RecipeLibrary recipes={recipes} onChoose={(recipe) => setMealDialog({ open: true, recipeId: recipe.id })} />}
       {activeTab === "history" && <HistoryView entries={entries} recipesById={recipesById} />}
+      {activeTab === "recipe-detail" && detailView && (
+        <RecipeDetailView
+          recipe={recipesById[detailView.recipeId]}
+          details={recipeDetails[detailView.recipeId]}
+          servings={detailView.servings}
+          onBack={() => navigateTo("today")}
+        />
+      )}
 
       <footer className="medical-footer"><Info size={20} strokeWidth={1.8} /><span>Other nutrient consideration (Ca, Phos, K) should be made individually based on medical conditions. Targets should be reviewed with your kidney care team. This app does not diagnose kidney disease.</span></footer>
 
@@ -154,7 +176,7 @@ export default function App() {
   );
 }
 
-function TodayView({ profile, entries, recipesById, totals, onOpenMeal, onOpenCustom, onOpenProfile, onRemove }) {
+function TodayView({ profile, entries, recipesById, totals, onOpenMeal, onOpenCustom, onOpenProfile, onOpenRecipe, onRemove }) {
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
   const displayDate = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
@@ -180,7 +202,7 @@ function TodayView({ profile, entries, recipesById, totals, onOpenMeal, onOpenCu
         <section className="today-meals">
           <h2>Today’s meals</h2>
           <div className="meal-list">
-            {entries.length ? entries.map((entry) => <MealRow key={entry.id} meal={entry} recipe={recipesById[entry.recipeId]} onRemove={onRemove} />) : <p className="empty-state">No foods logged today. Add a recipe or an outside food to start.</p>}
+            {entries.length ? entries.map((entry) => <MealRow key={entry.id} meal={entry} recipe={recipesById[entry.recipeId]} onOpenDetails={entry.source === "recipe" ? () => onOpenRecipe(entry) : null} onRemove={onRemove} />) : <p className="empty-state">No foods logged today. Add a recipe or an outside food to start.</p>}
           </div>
           <button className="add-another" type="button" onClick={() => onOpenMeal()}><span><Plus size={20} /></span> Add another meal</button>
         </section>

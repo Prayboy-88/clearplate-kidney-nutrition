@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { recipeImages } from "../data/seed";
 import { formatAmount } from "../utils/nutrition";
 
-export default function RecipeLibrary({ recipes, onChoose }) {
+export default function RecipeLibrary({ recipes, onChoose, onOpenRecipe }) {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All categories");
   const categories = useMemo(() => ["All categories", ...new Set(recipes.map((recipe) => recipe.category))], [recipes]);
@@ -25,7 +25,7 @@ export default function RecipeLibrary({ recipes, onChoose }) {
           <thead><tr><th>Recipe</th><th>Category</th><th>Calories</th><th>Protein</th><th>Sodium</th><th>Potassium</th><th><span className="sr-only">Action</span></th></tr></thead>
           <tbody>{filtered.map((recipe) => {
             const image = recipeImages[recipe.id];
-            return <tr key={recipe.id}><td><div className="table-recipe">{image ? <img src={image} alt="" loading="lazy" decoding="async" /> : <span className="recipe-placeholder">{recipe.name.slice(0, 1)}</span>}<strong>{recipe.name}</strong></div></td><td>{recipe.category}</td><td>{formatAmount(recipe.calories, 1)} kcal</td><td>{formatAmount(recipe.protein, 1)} g</td><td><strong>{formatAmount(recipe.sodium, 1)} mg</strong></td><td>{formatAmount(recipe.potassium, 1)} mg</td><td><button type="button" className="table-add" onClick={() => onChoose(recipe)} aria-label={`Add ${recipe.name}`}><Plus size={17} /> Add</button></td></tr>;
+            return <tr key={recipe.id}><td><button className="table-recipe table-recipe-button" type="button" onClick={() => onOpenRecipe(recipe)} aria-label={`View ${recipe.name} recipe`}>{image ? <img src={image} alt="" loading="lazy" decoding="async" /> : <span className="recipe-placeholder">{recipe.name.slice(0, 1)}</span>}<span><strong>{recipe.name}</strong><small>View recipe</small></span><ArrowUpRight size={17} /></button></td><td>{recipe.category}</td><td>{formatAmount(recipe.calories, 1)} kcal</td><td>{formatAmount(recipe.protein, 1)} g</td><td><strong>{formatAmount(recipe.sodium, 1)} mg</strong></td><td>{formatAmount(recipe.potassium, 1)} mg</td><td><button type="button" className="table-add" onClick={() => onChoose(recipe)} aria-label={`Add ${recipe.name}`}><Plus size={17} /> Add</button></td></tr>;
           })}</tbody>
         </table>
       </div>

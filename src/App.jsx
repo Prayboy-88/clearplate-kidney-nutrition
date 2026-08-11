@@ -30,6 +30,11 @@ import { mealTimes, nextSortOrder, normalizeEntryOrder, reorderMealEntries } fro
 import { formatAmount, localDateKey, mealTotals } from "./utils/nutrition";
 
 const appStorageKey = "clearplate-adpkd-mvp-v3";
+const detailReturnLabels = {
+  today: "today’s meals",
+  planner: "plan",
+  recipes: "recipes",
+};
 
 function loadInitialState() {
   try {
@@ -128,8 +133,14 @@ export default function App() {
     setActiveTab("today");
   };
 
-  const openRecipeDetails = (entry) => {
-    setDetailView({ recipeId: entry.recipeId, servings: entry.servings });
+  const openRecipeDetails = (recipeOrEntry, returnTab = "today") => {
+    const recipeId = recipeOrEntry.recipeId || recipeOrEntry.id;
+    if (!recipeId) return;
+    setDetailView({
+      recipeId,
+      servings: recipeOrEntry.servings || 1,
+      returnTab,
+    });
     setActiveTab("recipe-detail");
   };
 
@@ -149,14 +160,17 @@ export default function App() {
     if (tab !== "recipe-detail") setDetailView(null);
   };
 
+  const isTabActive = (tab) => activeTab === tab
+    || (activeTab === "recipe-detail" && detailView?.returnTab === tab);
+
   return (
     <div className="app-shell">
       <header className="topbar">
         <button className="logo-button" type="button" onClick={() => navigateTo("today")}><Logo /></button>
         <nav aria-label="Primary navigation">
-          <button className={activeTab === "today" || activeTab === "recipe-detail" ? "active" : ""} type="button" onClick={() => navigateTo("today")}><CalendarDays /> Today</button>
-          <button className={activeTab === "planner" ? "active" : ""} type="button" onClick={() => navigateTo("planner")}><Utensils /> Plan</button>
-          <button className={activeTab === "recipes" ? "active" : ""} type="button" onClick={() => navigateTo("recipes")}><BookOpen /> Recipes</button>
+          <button className={isTabActive("today") ? "active" : ""} type="button" onClick={() => navigateTo("today")}><CalendarDays /> Today</button>
+          <button className={isTabActive("planner") ? "active" : ""} type="button" onClick={() => navigateTo("planner")}><Utensils /> Plan</button>
+          <button className={isTabActive("recipes") ? "active" : ""} type="button" onClick={() => navigateTo("recipes")}><BookOpen /> Recipes</button>
           <button className={activeTab === "history" ? "active" : ""} type="button" onClick={() => navigateTo("history")}><History /> History</button>
           <button type="button" onClick={() => setProfileOpen(true)}><CircleUserRound /> Profile</button>
         </nav>
@@ -171,19 +185,20 @@ export default function App() {
         onOpenMeal={openMealDialog}
         onOpenCustom={() => setCustomDialog(true)}
         onOpenProfile={() => setProfileOpen(true)}
-        onOpenRecipe={openRecipeDetails}
+        onOpenRecipe={(entry) => openRecipeDetails(entry, "today")}
         onRemove={removeEntry}
         onReorder={reorderMealEntry}
       />}
-      {activeTab === "planner" && <PlannerView recipes={recipes} profile={profile} onAddPlan={addPlan} />}
-      {activeTab === "recipes" && <RecipeLibrary recipes={recipes} onChoose={(recipe) => openMealDialog(recipe.id)} />}
+      {activeTab === "planner" && <PlannerView recipes={recipes} profile={profile} onAddPlan={addPlan} onOpenRecipe={(recipe) => openRecipeDetails(recipe, "planner")} />}
+      {activeTab === "recipes" && <RecipeLibrary recipes={recipes} onChoose={(recipe) => openMealDialog(recipe.id)} onOpenRecipe={(recipe) => openRecipeDetails(recipe, "recipes")} />}
       {activeTab === "history" && <HistoryView entries={entries} recipesById={recipesById} />}
       {activeTab === "recipe-detail" && detailView && (
         <RecipeDetailView
           recipe={recipesById[detailView.recipeId]}
           details={recipeDetails[detailView.recipeId]}
           servings={detailView.servings}
-          onBack={() => navigateTo("today")}
+          backLabel={detailReturnLabels[detailView.returnTab] || detailReturnLabels.today}
+          onBack={() => navigateTo(detailView.returnTab || "today")}
         />
       )}
 

@@ -49,7 +49,7 @@ function scaleIngredient(ingredient, factor) {
   return quantity === null ? ingredient : `≈ ${formatScaled(quantity * factor)}${single[2]}`;
 }
 
-export default function RecipeDetailView({ recipe, details, servings = 1, onBack }) {
+export default function RecipeDetailView({ recipe, details, servings = 1, backLabel = "today’s meals", onBack }) {
   const [cookServings, setCookServings] = useState(servings);
   const [checkedIngredients, setCheckedIngredients] = useState([]);
 
@@ -79,7 +79,7 @@ export default function RecipeDetailView({ recipe, details, servings = 1, onBack
   return (
     <main className="recipe-detail-page">
       <button className="recipe-back-button" type="button" onClick={onBack}>
-        <ArrowLeft size={19} /> Back to today’s meals
+        <ArrowLeft size={19} /> Back to {backLabel}
       </button>
 
       <article className="recipe-detail-surface">
@@ -89,7 +89,7 @@ export default function RecipeDetailView({ recipe, details, servings = 1, onBack
             <div>
               <span>{recipe.category} · {details ? "Cooking instructions" : "Nutrition data only"}</span>
               <h1 id="recipe-detail-title">{recipe.name}</h1>
-              <p>{details ? `${details.servingSize} per serving · source recipe makes ${details.servings} servings` : `${formatAmount(servings, 1)} logged serving${servings === 1 ? "" : "s"} · no preparation source linked`}</p>
+              <p>{details ? `${details.servingSize} per serving · source recipe makes ${details.servings} servings` : `${formatAmount(servings, 1)} serving${servings === 1 ? "" : "s"} · no preparation source linked`}</p>
             </div>
           </div>
         </header>
@@ -149,7 +149,7 @@ export default function RecipeDetailView({ recipe, details, servings = 1, onBack
               <p className="status-label">Source check complete</p>
               <h2 id="preparation-unavailable-title">Preparation details are not available</h2>
               <p>This recipe was manually added to the nutrition workbook and has no matching recipe or source page in the Cooking Well PDF. Its nutrition values remain available, but ingredients and cooking steps are intentionally not inferred.</p>
-              <button className="secondary-button" type="button" onClick={onBack}><ArrowLeft size={18} /> Back to today</button>
+              <button className="secondary-button" type="button" onClick={onBack}><ArrowLeft size={18} /> Back to {backLabel}</button>
             </div>
           </section>
         )}

@@ -202,7 +202,7 @@ export default function App() {
       />}
       {activeTab === "planner" && <PlannerView recipes={recipes} recipeDetails={recipeDetails} profile={profile} todayEntries={todayEntries} todayTotals={totals} plannerSession={plannerSession} onPlannerSessionChange={setPlannerSession} onAddPlan={addPlan} onOpenRecipe={(recipe) => openRecipeDetails(recipe, "planner")} />}
       {activeTab === "recipes" && <RecipeLibrary recipes={recipes} onChoose={(recipe) => openMealDialog(recipe.id)} onOpenRecipe={(recipe) => openRecipeDetails(recipe, "recipes")} />}
-      {activeTab === "history" && <HistoryView entries={entries} recipesById={recipesById} />}
+      {activeTab === "history" && <HistoryView entries={entries} recipesById={recipesById} profile={profile} />}
       {activeTab === "recipe-detail" && detailView && (
         <RecipeDetailView
           recipe={recipesById[detailView.recipeId]}

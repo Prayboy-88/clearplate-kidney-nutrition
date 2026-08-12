@@ -350,14 +350,25 @@ h1, h2, h3, p { margin-top: 0; }
 .history-source { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; color: var(--green-800); background: var(--green-100); font-weight: 730; }
 .history-day > footer { min-height: 46px; padding: 0 16px; display: flex; justify-content: flex-end; align-items: center; gap: 24px; border-top: 1px solid var(--border); color: #536159; background: #fbfcfb; font-size: 11px; }
 
-.planner-controls { min-height: 90px; padding: 16px 18px; display: grid; grid-template-columns: 240px 1fr; gap: 26px; align-items: end; border: 1px solid var(--border); border-radius: 12px; }
+.planner-controls { min-height: 90px; padding: 16px 18px; display: grid; grid-template-columns: minmax(420px, 1.4fr) 220px minmax(320px, 1fr); gap: 22px; align-items: end; border: 1px solid var(--border); border-radius: 12px; }
 .planner-controls label { display: block; margin-bottom: 7px; color: #3f4c44; font-size: 12px; font-weight: 680; }
+.control-label { display: block; margin-bottom: 8px; color: #3f4c44; font-size: 12px; font-weight: 680; }
+.meal-selector { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; }
+.meal-selector button { min-height: 42px; border: 1px solid var(--border-strong); border-radius: 8px; color: #425149; background: #fff; cursor: pointer; }
+.meal-selector button.selected { border-color: var(--green-700); color: var(--green-800); background: var(--green-50); box-shadow: inset 0 0 0 1px var(--green-700); font-weight: 720; }
 .constraint-summary { display: flex; gap: 10px; flex-wrap: wrap; align-self: center; }
 .constraint-summary span { padding: 9px 12px; border-left: 3px solid var(--green-700); color: #415047; background: var(--green-50); font-size: 12px; }
+.constraint-summary strong { display: block; margin-top: 3px; }
 .plan-status { margin-top: 18px; padding: 14px 16px; display: flex; gap: 11px; border: 1px solid #b6d5c1; border-radius: 10px; color: var(--green-800); background: var(--green-50); }
 .plan-status.closest { border-color: #e5ca92; color: #775316; background: var(--amber-100); }
 .plan-status strong { font-size: 13px; }
 .plan-status p { margin: 4px 0 0; color: #536159; font-size: 11px; }
+.plan-variants { margin-top: 18px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.plan-variants button { min-height: 80px; padding: 13px 14px; border: 1px solid var(--border); border-radius: 10px; color: #435149; background: #fff; text-align: left; cursor: pointer; }
+.plan-variants button.active { border-color: var(--green-700); background: var(--green-50); box-shadow: inset 0 0 0 1px var(--green-700); }
+.plan-variants strong, .plan-variants span { display: block; }
+.plan-variants strong { color: var(--green-800); font-size: 14px; }
+.plan-variants span { margin-top: 5px; color: var(--muted); font-size: 11px; line-height: 1.4; }
 .plan-list { margin-top: 15px; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
 .plan-row { min-height: 92px; padding: 10px 16px; display: grid; grid-template-columns: 70px minmax(0, 1fr) 22px; gap: 14px; align-items: center; border-bottom: 1px solid var(--border); }
 .plan-row:last-child { border-bottom: 0; }
@@ -373,10 +384,17 @@ h1, h2, h3, p { margin-top: 0; }
 .plan-row span { margin-top: 6px; color: var(--muted); font-size: 11px; }
 .plan-row .plan-row-link { color: var(--green-700); font-weight: 700; }
 .plan-row-arrow { color: var(--green-700); }
-.plan-totals { min-height: 78px; margin-top: 14px; padding: 13px 15px; display: grid; grid-template-columns: repeat(3, 1fr) auto; gap: 18px; align-items: center; border: 1px solid var(--border); border-radius: 12px; }
+.plan-summary-grid { margin-top: 14px; display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.8fr) auto; gap: 12px; align-items: stretch; }
+.plan-totals { min-height: 78px; padding: 13px 15px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; align-items: center; border: 1px solid var(--border); border-radius: 12px; }
 .plan-totals span, .plan-totals strong { display: block; }
 .plan-totals span { color: var(--muted); font-size: 11px; }
 .plan-totals strong { margin-top: 4px; font-size: 15px; }
+.remaining-card { padding: 13px 15px; display: flex; flex-direction: column; justify-content: center; border: 1px solid #b6d5c1; border-radius: 12px; background: var(--green-50); }
+.remaining-card.over { border-color: #e5ca92; background: var(--amber-100); }
+.remaining-card span, .remaining-card small { color: var(--muted); font-size: 11px; }
+.remaining-card strong { margin: 5px 0; color: var(--green-800); font-size: 15px; }
+.remaining-card.over strong { color: #8a5500; }
+.plan-summary-grid > .primary-button { min-width: 190px; }
 .optimization-note { margin-top: 18px; padding: 16px; display: flex; gap: 12px; color: #395465; background: var(--blue-50); border-radius: 10px; }
 .optimization-note strong { font-size: 12px; }
 .optimization-note p { margin: 5px 0 0; font-size: 11px; line-height: 1.55; }
@@ -429,6 +447,10 @@ h1, h2, h3, p { margin-top: 0; }
   .recipe-detail-page { padding-inline: 28px; }
   .edit-row { grid-template-columns: 30px minmax(0, 1fr) 40px; }
   .edit-row .meal-row-static { grid-column: 2; padding-left: 0; }
+  .planner-controls { grid-template-columns: 1fr 1fr; }
+  .constraint-summary { grid-column: 1 / -1; }
+  .plan-summary-grid { grid-template-columns: 1fr 1fr; }
+  .plan-summary-grid > .primary-button { grid-column: 1 / -1; }
 }
 
 @media (max-width: 720px) {
@@ -498,9 +520,9 @@ h1, h2, h3, p { margin-top: 0; }
   .history-row { grid-template-columns: 34px minmax(0, 1fr); padding-block: 12px; }
   .history-row > span:nth-last-child(-n+2) { grid-column: 2; }
   .history-day > footer { justify-content: flex-start; flex-wrap: wrap; padding-block: 12px; gap: 12px; }
-  .planner-controls { grid-template-columns: 1fr; }
+  .planner-controls, .plan-variants, .plan-summary-grid { grid-template-columns: 1fr; }
+  .meal-selector { grid-template-columns: repeat(2, 1fr); }
   .plan-totals { grid-template-columns: repeat(3, 1fr); }
-  .plan-totals .primary-button { grid-column: 1 / -1; }
   .adjusted-values { display: grid; gap: 7px; }
 }
 

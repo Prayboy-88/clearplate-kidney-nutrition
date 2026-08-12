@@ -55,6 +55,11 @@ export default function App() {
   const [customDialog, setCustomDialog] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [detailView, setDetailView] = useState(null);
+  const [plannerSession, setPlannerSession] = useState({
+    selectedMeals: null,
+    caloriesPerMeal: 450,
+    activeObjective: "balanced",
+  });
   const today = localDateKey();
   const recipesById = useMemo(() => Object.fromEntries(recipes.map((recipe) => [recipe.id, recipe])), []);
   const todayEntries = entries.filter((entry) => entry.date === today);
@@ -116,17 +121,23 @@ export default function App() {
   };
 
   const addPlan = (items) => {
-    const mealNames = ["Breakfast", "Lunch", "Dinner"];
-    const nextItems = items.map((recipe, index) => ({
-      id: `plan-${Date.now()}-${index}`,
-      date: today,
-      source: "recipe",
-      recipeId: recipe.id,
-      servings: 1,
-      meal: mealNames[index],
-      time: mealTimes[mealNames[index]],
-      sortOrder: nextSortOrder(entries, today, mealNames[index]),
-    }));
+    const mealNames = ["Breakfast", "Lunch", "Dinner", "Snack"];
+    const nextByMeal = new Map();
+    const nextItems = items.map((item, index) => {
+      const meal = item.meal || mealNames[index % mealNames.length];
+      const sortOrder = nextByMeal.get(meal) ?? nextSortOrder(entries, today, meal);
+      nextByMeal.set(meal, sortOrder + 1);
+      return {
+        id: `plan-${Date.now()}-${index}`,
+        date: today,
+        source: "recipe",
+        recipeId: item.recipeId || item.id,
+        servings: item.servings || 1,
+        meal,
+        time: mealTimes[meal],
+        sortOrder,
+      };
+    });
     const next = [...entries, ...nextItems];
     setEntries(next);
     persist(profile, next);
@@ -189,7 +200,7 @@ export default function App() {
         onRemove={removeEntry}
         onReorder={reorderMealEntry}
       />}
-      {activeTab === "planner" && <PlannerView recipes={recipes} profile={profile} onAddPlan={addPlan} onOpenRecipe={(recipe) => openRecipeDetails(recipe, "planner")} />}
+      {activeTab === "planner" && <PlannerView recipes={recipes} recipeDetails={recipeDetails} profile={profile} todayEntries={todayEntries} todayTotals={totals} plannerSession={plannerSession} onPlannerSessionChange={setPlannerSession} onAddPlan={addPlan} onOpenRecipe={(recipe) => openRecipeDetails(recipe, "planner")} />}
       {activeTab === "recipes" && <RecipeLibrary recipes={recipes} onChoose={(recipe) => openMealDialog(recipe.id)} onOpenRecipe={(recipe) => openRecipeDetails(recipe, "recipes")} />}
       {activeTab === "history" && <HistoryView entries={entries} recipesById={recipesById} />}
       {activeTab === "recipe-detail" && detailView && (

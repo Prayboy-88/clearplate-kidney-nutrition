@@ -111,6 +111,7 @@ export default function TodayMeals({ entries, recipesById, onAddMeal, onOpenReci
                   <div><h3 id={`meal-group-${section.name}`}>{section.name}</h3><small>{section.time}</small></div>
                 </div>
                 <div className="meal-group-summary" aria-label={`${section.name} nutrition total`}>
+                  <span><strong>{formatAmount(totals.calories, 1)} kcal</strong></span>
                   <span><strong>{formatAmount(totals.sodium, 1)} mg</strong> sodium</span>
                   <span><strong>{formatAmount(totals.protein, 1)} g</strong> protein</span>
                 </div>

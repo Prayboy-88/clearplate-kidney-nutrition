@@ -27,11 +27,11 @@ export function calculateRemainingBudget(loggedTotals, targets) {
     calories: Number.isFinite(Number(targets.calorieTarget))
       ? round(Number(targets.calorieTarget) - (Number(loggedTotals.calories) || 0), 1)
       : null,
-    sodiumMax: round(sodiumMax - (Number(loggedTotals.sodium) || 0), 1),
-    proteinMin: round(Math.max(0, proteinMin - (Number(loggedTotals.protein) || 0)), 1),
-    proteinMax: round(proteinMax - (Number(loggedTotals.protein) || 0), 1),
-    potassiumMax: potassiumMax === null ? null : round(potassiumMax - (Number(loggedTotals.potassium) || 0), 1),
-    phosphorusMax: phosphorusMax === null ? null : round(phosphorusMax - (Number(loggedTotals.phosphorus) || 0), 1),
+    sodiumMax: round(sodiumMax - (Number(loggedTotals.upper?.sodium ?? loggedTotals.sodium) || 0), 1),
+    proteinMin: round(Math.max(0, proteinMin - (Number(loggedTotals.lower?.protein ?? loggedTotals.protein) || 0)), 1),
+    proteinMax: round(proteinMax - (Number(loggedTotals.upper?.protein ?? loggedTotals.protein) || 0), 1),
+    potassiumMax: potassiumMax === null ? null : round(potassiumMax - (Number(loggedTotals.upper?.potassium ?? loggedTotals.potassium) || 0), 1),
+    phosphorusMax: phosphorusMax === null ? null : round(phosphorusMax - (Number(loggedTotals.upper?.phosphorus ?? loggedTotals.phosphorus) || 0), 1),
   };
 }
 

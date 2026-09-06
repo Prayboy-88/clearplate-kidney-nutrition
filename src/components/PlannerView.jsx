@@ -52,6 +52,7 @@ export default function PlannerView({ recipes, recipeDetails, profile, todayEntr
   return (
     <main className="planner-page">
       <header className="page-heading"><div><h1>Build the rest of your day</h1><p>Explore meal ideas based on what you have already logged and the targets saved in your profile.</p></div></header>
+      {todayTotals.estimatedCount > 0 && <p className="estimate-note">Your log includes estimates. Planning uses their upper bounds for nutrient ceilings and their lower protein bound for the remaining protein gap. Results depend on your user-set ranges.</p>}
 
       <section className="planner-controls">
         <div className="meal-planning-control">

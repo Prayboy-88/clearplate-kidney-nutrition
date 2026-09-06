@@ -9,13 +9,31 @@ export const formatAmount = (value, digits = 0) =>
     minimumFractionDigits: 0,
   }).format(Number(value) || 0);
 
-export const nutritionFor = (recipe, servings = 1) => ({
-  calories: round(recipe.calories * servings, 1),
-  protein: round(recipe.protein * servings, 1),
-  sodium: round(recipe.sodium * servings, 1),
-  potassium: round(recipe.potassium * servings, 1),
-  phosphorus: round(recipe.phosphorus * servings, 1),
-});
+export const nutritionFor = (recipe, servings = 1) => {
+  // Older records stored an inflated estimate alongside the original values.
+  const values = recipe.method === "unpackaged" && recipe.baseEstimate ? recipe.baseEstimate : recipe;
+  return Object.fromEntries(["calories", "protein", "sodium", "potassium", "phosphorus"]
+    .map((key) => [key, round(values[key] * servings, 1)]));
+};
+
+export function mealTotalBounds(meals, recipesById) {
+  const lower = { calories: 0, protein: 0, sodium: 0, potassium: 0, phosphorus: 0 };
+  const upper = { ...lower };
+  let estimatedCount = 0;
+  for (const meal of meals) {
+    const food = meal.source === "custom" ? meal.customFood : recipesById[meal.recipeId];
+    if (!food) continue;
+    const estimated = food.method === "unpackaged";
+    const margin = estimated ? Math.min(100, Math.max(0, Number(food.estimateRangePercent ?? food.uncertaintyMargin) || 0)) / 100 : 0;
+    if (estimated) estimatedCount += 1;
+    const nutrition = nutritionFor(food, meal.servings);
+    for (const key of Object.keys(lower)) {
+      lower[key] = round(lower[key] + nutrition[key] * (1 - margin), 1);
+      upper[key] = round(upper[key] + nutrition[key] * (1 + margin), 1);
+    }
+  }
+  return { lower, upper, estimatedCount };
+}
 
 export const mealTotals = (meals, recipesById) =>
   meals.reduce(

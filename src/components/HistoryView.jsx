@@ -13,6 +13,7 @@ import {
 import { useMemo, useState } from "react";
 import { buildCalendarMonth, historyDayStatus } from "../utils/history";
 import { formatAmount, localDateKey, mealTotals } from "../utils/nutrition";
+import { isDayComplete } from "../utils/recording";
 
 const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const mealOrder = ["Breakfast", "Lunch", "Dinner", "Snack"];
@@ -66,7 +67,7 @@ function NutritionCard({ label, value, progress, status }) {
   );
 }
 
-export default function HistoryView({ entries, recipesById, profile }) {
+export default function HistoryView({ entries, recipesById, profile: currentProfile, dayRecords = {} }) {
   const today = localDateKey();
   const latestLoggedDate = useMemo(
     () => entries.reduce((latest, entry) => (entry.date > latest ? entry.date : latest), ""),
@@ -75,6 +76,8 @@ export default function HistoryView({ entries, recipesById, profile }) {
   const initialDate = entries.some((entry) => entry.date === today) ? today : (latestLoggedDate || today);
   const [selectedDate, setSelectedDate] = useState(initialDate);
   const [visibleMonth, setVisibleMonth] = useState(() => monthStartFor(initialDate));
+  const selectedComplete = isDayComplete(dayRecords, entries, selectedDate);
+  const profile = selectedComplete ? (dayRecords[selectedDate]?.profile || currentProfile) : currentProfile;
 
   const entriesByDate = useMemo(() => entries.reduce((byDate, entry) => {
     (byDate[entry.date] ??= []).push(entry);
@@ -83,12 +86,15 @@ export default function HistoryView({ entries, recipesById, profile }) {
 
   const dayReports = useMemo(() => Object.fromEntries(Object.entries(entriesByDate).map(([dateKey, items]) => {
     const totals = mealTotals(items, recipesById);
+    const complete = isDayComplete(dayRecords, entries, dateKey);
+    const estimated = items.some((item) => item.customFood?.method === "unpackaged");
+    const targets = complete ? (dayRecords[dateKey]?.profile || currentProfile) : currentProfile;
     return [dateKey, {
       items,
       totals,
-      status: historyDayStatus(totals, items.length, profile),
+      status: complete && !estimated ? historyDayStatus(totals, items.length, targets) : "review",
     }];
-  })), [entriesByDate, profile, recipesById]);
+  })), [entriesByDate, currentProfile, recipesById, dayRecords, entries]);
 
   const calendarCells = useMemo(
     () => buildCalendarMonth(visibleMonth.getFullYear(), visibleMonth.getMonth()),
@@ -213,7 +219,7 @@ export default function HistoryView({ entries, recipesById, profile }) {
         <header className="history-report-heading">
           <span>{selectedDate === today ? "Today" : "Daily report"}</span>
           <h2 id="history-report-title">{dateFromKey(selectedDate).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}</h2>
-          <p>Daily nutrition report</p>
+          <p>{selectedComplete ? "Recording confirmed · targets saved at confirmation" : "Recording not confirmed · current targets shown for reference"}</p>
         </header>
 
         <div className="history-nutrition-grid">
@@ -265,7 +271,7 @@ export default function HistoryView({ entries, recipesById, profile }) {
           )}
         </section>
 
-        <p className="history-report-note"><Info aria-hidden="true" /> This report summarizes foods recorded on this device. Targets come from the user’s saved care plan.</p>
+        <p className="history-report-note"><Info aria-hidden="true" /> Totals describe recorded food only. Review includes incomplete logs, estimated food, or values outside saved targets. A green mark does not certify nutritional adequacy.</p>
         <p className="history-privacy">MVP privacy: food history is stored only in this browser’s local storage. It is not synced to a clinic or cloud account.</p>
       </section>
     </main>

@@ -18,6 +18,23 @@ const recipe = (id, nutrition, steps = 3) => ({
 const details = (recipes) => Object.fromEntries(recipes.map((item) => [item.id, { steps: Array.from({ length: item.steps }, (_, index) => `Step ${index + 1}`) }]));
 const baseTargets = { sodiumMax: 2000, proteinMin: 56, proteinMax: 70, potassiumMax: null, phosphorusMax: null };
 
+test("missing required targets are not interpreted as zero", () => {
+  for (const value of [null, "", " ", false]) {
+    const result = optimizeRemainingDay({ recipes: [], targets: { ...baseTargets, proteinMin: value } });
+    assert.equal(result.status, "invalid", `target ${JSON.stringify(value)} must be rejected`);
+  }
+});
+
+test("recipes with missing or negative constrained nutrients are excluded", () => {
+  for (const value of [null, "", -10]) {
+    const result = optimizeRemainingDay({
+      recipes: [recipe("invalid", { calories: 300, protein: 20, sodium: value })],
+      targets: baseTargets,
+    });
+    assert.equal(result.status, "empty", `sodium ${JSON.stringify(value)} must not produce a plan`);
+  }
+});
+
 test("remaining budget subtracts food already logged today", () => {
   assert.deepEqual(calculateRemainingBudget(
     { calories: 500, protein: 40, sodium: 600, potassium: 0, phosphorus: 0 },

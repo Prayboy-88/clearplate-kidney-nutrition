@@ -1,11 +1,11 @@
 import { Check, CircleAlert, Drumstick } from "lucide-react";
 import { formatAmount } from "../utils/nutrition";
 
-export default function NutrientProgress({ type, value, target, range }) {
+export default function NutrientProgress({ type, value, target, range, complete = false, estimated = false }) {
   const isSodium = type === "sodium";
   const maximum = isSodium ? target : range.max;
-  const ratio = Math.min((value / maximum) * 100, 100);
-  let status = "Within plan";
+  const ratio = maximum > 0 ? Math.max(0, Math.min((value / maximum) * 100, 100)) : 0;
+  let status = isSodium ? "Below saved limit" : "Within saved range";
   let tone = "good";
 
   if (isSodium) {
@@ -22,6 +22,15 @@ export default function NutrientProgress({ type, value, target, range }) {
   } else if (value < range.min) {
     status = "Below range";
     tone = "warning";
+  }
+
+  if (!complete && tone !== "danger") {
+    status = "Recording in progress";
+    tone = "neutral";
+  }
+  if (estimated) {
+    status = "Includes estimates";
+    tone = "neutral";
   }
 
   const Icon = isSodium ? SaltShaker : Drumstick;
@@ -48,7 +57,9 @@ export default function NutrientProgress({ type, value, target, range }) {
         <div
           className="progress-track"
           role="progressbar"
-          aria-valuenow={Math.round(value)}
+          aria-label={isSodium ? "Recorded sodium relative to upper limit" : "Recorded protein relative to target range"}
+          aria-valuenow={Math.min(maximum, Math.max(0, Math.round(value)))}
+          aria-valuetext={`${formatAmount(value, 1)} ${unit} recorded; ${status}`}
           aria-valuemin="0"
           aria-valuemax={maximum}
         >
@@ -60,7 +71,7 @@ export default function NutrientProgress({ type, value, target, range }) {
         <div className="progress-labels">
           <span>0 {unit}</span>
           <span>{isSodium ? `${formatAmount(target / 2)} ${unit}` : `${formatAmount(range.min)} ${unit} min`}</span>
-          <span>{formatAmount(maximum)} {unit}</span>
+          <span>{formatAmount(maximum)} {unit}{isSodium ? " upper limit" : ""}</span>
         </div>
       </div>
       <div className="nutrient-status">

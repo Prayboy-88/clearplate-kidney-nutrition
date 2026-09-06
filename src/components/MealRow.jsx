@@ -1,5 +1,6 @@
 import { GripVertical, Package, Trash2 } from "lucide-react";
 import { recipeImages } from "../data/seed";
+import recipeDetails from "../data/recipeDetails.json";
 import { formatAmount, nutritionFor } from "../utils/nutrition";
 
 export default function MealRow({
@@ -23,7 +24,7 @@ export default function MealRow({
     <>
       <div className="meal-recipe">
         {image ? <img src={image} alt="" loading="lazy" decoding="async" /> : <div className="recipe-placeholder" aria-hidden="true">{meal.source === "custom" ? <Package size={20} /> : item.name.slice(0, 1)}</div>}
-        <div><strong>{item.name}</strong><small>{formatAmount(meal.servings, 1)} serving{meal.servings === 1 ? "" : "s"}{meal.source === "custom" ? ` · ${item.methodLabel}` : onOpenDetails ? " · View recipe" : ""}</small></div>
+        <div><strong>{item.name}</strong><small>{formatAmount(meal.servings, 1)} serving{meal.servings === 1 ? "" : "s"}{meal.source === "custom" ? ` · ${item.method === "unpackaged" ? "Estimated intake" : item.methodLabel}` : onOpenDetails ? " · View recipe" : ""}</small>{meal.source !== "custom" && <small>1 serving: {recipeDetails[item.id]?.servingSize || "source portion not available"}</small>}</div>
       </div>
       <div className="meal-nutrient"><strong>{formatAmount(nutrients.sodium, 1)} mg</strong><small>sodium</small></div>
       <div className="meal-nutrient"><strong>{formatAmount(nutrients.protein, 1)} g</strong><small>protein</small></div>

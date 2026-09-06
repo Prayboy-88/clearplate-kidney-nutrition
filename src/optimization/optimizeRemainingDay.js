@@ -12,6 +12,9 @@ const upperLimitKeys = [
 ];
 const nutrientUnits = { sodium: "mg", protein: "g", potassium: "mg", phosphorus: "mg" };
 const overageScales = { sodium: 100, protein: 5, potassium: 100, phosphorus: 100 };
+const isNonnegativeNumber = (value) => (typeof value === "number"
+  || (typeof value === "string" && value.trim() !== ""))
+  && Number.isFinite(Number(value)) && Number(value) >= 0;
 
 const compareText = (left, right) => left.localeCompare(right, "en", { sensitivity: "base" });
 const ratio = (value, maximum) => (maximum > 0 ? value / maximum : value > 0 ? Number.POSITIVE_INFINITY : 0);
@@ -24,7 +27,7 @@ function isValidRecipe(recipe, optionalLimits) {
   const required = ["calories", "protein", "sodium"];
   if (optionalLimits.potassiumMax !== null) required.push("potassium");
   if (optionalLimits.phosphorusMax !== null) required.push("phosphorus");
-  return required.every((key) => Number.isFinite(Number(recipe[key])))
+  return required.every((key) => isNonnegativeNumber(recipe[key]))
     && Number(recipe.calories) > 0
     && !excludedCategories.has(recipe.category);
 }
@@ -217,8 +220,8 @@ export function optimizeRemainingDay({
 }) {
   const meals = mealOptions.filter((meal) => selectedMeals.includes(meal));
   if (!meals.length) return { status: "invalid", message: "Choose at least one meal to plan.", plans: [] };
-  const requiredTargets = [targets?.sodiumMax, targets?.proteinMin, targets?.proteinMax].map(Number);
-  if (requiredTargets.some((value) => !Number.isFinite(value) || value < 0) || requiredTargets[1] > requiredTargets[2]) {
+  const requiredTargets = [targets?.sodiumMax, targets?.proteinMin, targets?.proteinMax];
+  if (requiredTargets.some((value) => !isNonnegativeNumber(value)) || Number(requiredTargets[1]) > Number(requiredTargets[2])) {
     return { status: "invalid", message: "Review the sodium and protein targets saved in your profile.", plans: [] };
   }
 

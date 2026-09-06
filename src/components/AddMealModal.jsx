@@ -26,6 +26,7 @@ export default function AddMealModal({
   initialMeal,
   todayTotals = emptyTotals,
   profile,
+  saveError,
   onClose,
   onAdd,
 }) {
@@ -82,8 +83,8 @@ export default function AddMealModal({
   const proteinMin = profile?.proteinMinG || 0;
   const proteinMax = profile?.proteinMaxG || 70;
   const combined = {
-    sodium: todayTotals.sodium + selectedNutrition.sodium,
-    protein: todayTotals.protein + selectedNutrition.protein,
+    sodium: (todayTotals.upper?.sodium ?? todayTotals.sodium) + selectedNutrition.sodium,
+    protein: (todayTotals.upper?.protein ?? todayTotals.protein) + selectedNutrition.protein,
   };
   const sodiumOver = combined.sodium > sodiumTarget;
   const proteinOver = combined.protein > proteinMax;
@@ -151,7 +152,7 @@ export default function AddMealModal({
               marker={proteinMax ? (proteinMin / proteinMax) * 100 : 0}
               danger={proteinOver}
               warning={combined.protein < proteinMin}
-              status={proteinOver ? `${formatAmount(combined.protein - proteinMax, 1)} g over` : combined.protein < proteinMin ? `${formatAmount(proteinMin - combined.protein, 1)} g to minimum` : "Within range"}
+              status={proteinOver ? `${formatAmount(combined.protein - proteinMax, 1)} g over` : todayTotals.estimatedCount > 0 ? "Includes estimates" : combined.protein < proteinMin ? `${formatAmount(proteinMin - combined.protein, 1)} g to minimum` : "Within range"}
             />
           </div>
         </section>
@@ -187,6 +188,7 @@ export default function AddMealModal({
                 {image ? <img src={image} alt="" loading="lazy" decoding="async" /> : <span className="recipe-placeholder">{recipe.name.slice(0, 1)}</span>}
                 <span className="recipe-result-copy">
                   <strong>{recipe.name}</strong>
+                  <small>1 serving: {recipeDetails[recipe.id]?.servingSize || "source portion not available"}</small>
                   <small>{formatAmount(recipe.calories, 1)} kcal · {formatAmount(recipe.protein, 1)} g protein · {formatAmount(recipe.sodium, 1)} mg sodium</small>
                   {details && <small className="recipe-quick-info"><b>Needs:</b> {details.quickIngredients.join(" · ")}</small>}
                   {details && <small className="recipe-quick-info method"><b>Method:</b> {details.quickMethod}</small>}
@@ -200,6 +202,8 @@ export default function AddMealModal({
         </div>
 
         <footer className="meal-modal-footer">
+          {todayTotals.estimatedCount > 0 && <p className="field-note">Upper-limit checks use the high end of your logged estimates. Protein adequacy is not confirmed here.</p>}
+          {saveError && <p className="storage-alert" role="alert">{saveError}</p>}
           <div className="serving-row">
             <span>Servings for each selected recipe</span>
             <div className="stepper">

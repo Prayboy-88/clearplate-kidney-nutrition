@@ -226,6 +226,20 @@ export function optimizeRemainingDay({
   }
 
   const remaining = calculateRemainingBudget(loggedTotals, targets);
+  const unknownOptional = [
+    ["potassium", "potassiumMax"],
+    ["phosphorus", "phosphorusMax"],
+  ].find(([, limitKey]) => targets?.[limitKey] !== null
+    && targets?.[limitKey] !== undefined
+    && String(targets[limitKey]).trim() !== ""
+    && remaining[limitKey] === null);
+  if (unknownOptional) {
+    return {
+      status: "invalid",
+      message: `The logged ${unknownOptional[0]} amount is unknown, so this enabled upper limit cannot be checked.`,
+      plans: [],
+    };
+  }
   const context = {
     remaining,
     calorieReference: Math.max(100, Number(calorieReference) || 600),

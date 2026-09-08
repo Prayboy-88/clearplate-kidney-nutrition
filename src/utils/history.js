@@ -1,3 +1,5 @@
+import { hasValidProteinTargets } from "./profile.js";
+
 const daysInMonth = (year, monthIndex) => new Date(year, monthIndex + 1, 0).getDate();
 
 export function buildCalendarMonth(year, monthIndex) {
@@ -22,6 +24,7 @@ export function buildCalendarMonth(year, monthIndex) {
 
 export function historyDayStatus(totals, itemCount, profile) {
   if (!itemCount) return "empty";
+  if (!hasValidProteinTargets(profile)) return "review";
 
   const sodiumWithin = totals.sodium <= profile.sodiumTargetMg;
   const proteinWithin = totals.protein >= profile.proteinMinG

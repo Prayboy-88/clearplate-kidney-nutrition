@@ -3,33 +3,37 @@ import { formatAmount } from "../utils/nutrition";
 
 export default function NutrientProgress({ type, value, target, range, complete = false, estimated = false }) {
   const isSodium = type === "sodium";
-  const maximum = isSodium ? target : range.max;
-  const ratio = maximum > 0 ? Math.max(0, Math.min((value / maximum) * 100, 100)) : 0;
+  const numericValue = Number.isFinite(Number(value)) ? Number(value) : null;
+  const hasValidTarget = isSodium
+    ? Number.isFinite(Number(target)) && Number(target) > 0
+    : Number.isFinite(Number(range?.min)) && Number(range.min) > 0
+      && Number.isFinite(Number(range?.max)) && Number(range.max) >= Number(range.min);
+  const maximum = hasValidTarget ? Number(isSodium ? target : range.max) : null;
+  const ratio = maximum > 0 && numericValue !== null ? Math.max(0, Math.min((numericValue / maximum) * 100, 100)) : 0;
   let status = isSodium ? "Below saved limit" : "Within saved range";
   let tone = "good";
 
-  if (isSodium) {
-    if (value > target) {
+  if (!hasValidTarget) {
+    status = "Targets need review";
+    tone = "warning";
+  } else if (isSodium) {
+    if (numericValue > target) {
       status = "Over target";
       tone = "danger";
-    } else if (value > target * 0.8) {
+    } else if (numericValue > target * 0.8) {
       status = "Near limit";
       tone = "warning";
     }
-  } else if (value > range.max) {
+  } else if (numericValue > range.max) {
     status = "Over range";
     tone = "danger";
-  } else if (value < range.min) {
+  } else if (numericValue < range.min) {
     status = "Below range";
     tone = "warning";
   }
 
-  if (!complete && tone !== "danger") {
+  if (hasValidTarget && !complete && tone !== "danger") {
     status = "Recording in progress";
-    tone = "neutral";
-  }
-  if (estimated) {
-    status = "Includes estimates";
     tone = "neutral";
   }
 
@@ -46,7 +50,7 @@ export default function NutrientProgress({ type, value, target, range, complete 
         <div className="nutrient-heading">
           <strong>{isSodium ? "Sodium" : "Protein"}</strong>
           <span className="nutrient-current">
-            {formatAmount(value, 1)}
+            {formatAmount(numericValue, 1)}
             <small>
               {isSodium
                 ? ` / ${formatAmount(target)} ${unit}`
@@ -58,13 +62,13 @@ export default function NutrientProgress({ type, value, target, range, complete 
           className="progress-track"
           role="progressbar"
           aria-label={isSodium ? "Recorded sodium relative to upper limit" : "Recorded protein relative to target range"}
-          aria-valuenow={Math.min(maximum, Math.max(0, Math.round(value)))}
-          aria-valuetext={`${formatAmount(value, 1)} ${unit} recorded; ${status}`}
+          aria-valuenow={maximum === null || numericValue === null ? undefined : Math.min(maximum, Math.max(0, Math.round(numericValue)))}
+          aria-valuetext={`${formatAmount(numericValue, 1)} ${unit} recorded; ${status}${estimated ? "; includes estimates" : ""}`}
           aria-valuemin="0"
-          aria-valuemax={maximum}
+          aria-valuemax={maximum ?? undefined}
         >
           <span style={{ width: `${ratio}%` }} />
-          {!isSodium && (
+          {!isSodium && hasValidTarget && (
             <i className="range-marker" style={{ left: `${(range.min / range.max) * 100}%` }} />
           )}
         </div>
@@ -76,7 +80,7 @@ export default function NutrientProgress({ type, value, target, range, complete 
       </div>
       <div className="nutrient-status">
         <StatusIcon size={22} strokeWidth={1.8} aria-hidden="true" />
-        <span>{status}</span>
+        <span>{status}{estimated && <small>Includes estimates</small>}</span>
       </div>
     </section>
   );

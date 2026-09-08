@@ -14,6 +14,7 @@ test("historyDayStatus distinguishes empty, within, and review days", () => {
   assert.equal(historyDayStatus({ sodium: 2100, protein: 63 }, 3, profile), "review");
   assert.equal(historyDayStatus({ sodium: 1200, protein: 45 }, 3, profile), "review");
   assert.equal(historyDayStatus({ sodium: 1200, protein: 75 }, 3, profile), "review");
+  assert.equal(historyDayStatus({ sodium: 1200, protein: 0 }, 1, { ...profile, proteinMinG: "", proteinMaxG: "" }), "review");
 });
 
 test("buildCalendarMonth returns a Sunday-first grid with stable date keys", () => {

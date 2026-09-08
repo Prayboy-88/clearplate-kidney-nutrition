@@ -63,8 +63,10 @@ export default function PlannerView({ recipes, recipeDetails, profile, todayEntr
         </div>
         <label><span>Approx. calories per meal</span><div className="inline-unit"><input type="number" min="100" max="1500" step="50" value={caloriesPerMeal} onChange={(event) => onPlannerSessionChange((current) => ({ ...current, caloriesPerMeal: event.target.value }))} /><span>kcal</span></div></label>
         <div className="constraint-summary">
-          <span>Sodium <strong>{formatRemaining(result.remainingBefore?.sodiumMax ?? 0, "mg")}</strong></span>
-          <span>Protein <strong>{formatAmount(result.remainingBefore?.proteinMin ?? 0, 1)}–{formatAmount(Math.max(0, result.remainingBefore?.proteinMax ?? 0), 1)} g remaining</strong></span>
+          {result.remainingBefore ? <>
+            <span>Sodium <strong>{formatRemaining(result.remainingBefore.sodiumMax, "mg")}</strong></span>
+            <span>Protein <strong>{formatAmount(result.remainingBefore.proteinMin, 1)}–{formatAmount(Math.max(0, result.remainingBefore.proteinMax), 1)} g remaining</strong></span>
+          </> : <span>Targets <strong>Review required</strong></span>}
           <span>Up to <strong>4 dishes</strong> · 0.5–2 servings</span>
         </div>
       </section>

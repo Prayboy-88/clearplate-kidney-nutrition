@@ -1,9 +1,11 @@
 import { Check, Minus, Plus, Search, X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { recipeImages } from "../data/seed";
 import recipeDetails from "../data/recipeDetails.json";
+import useDialogFocus from "../hooks/useDialogFocus";
 import { mealSections } from "../utils/meals";
 import { formatAmount, nutritionFor } from "../utils/nutrition";
+import { hasValidProteinTargets } from "../utils/profile";
 
 const meals = mealSections.map(({ name }) => name);
 const courseFilters = [
@@ -36,6 +38,13 @@ export default function AddMealModal({
   const [courseFilter, setCourseFilter] = useState("all");
   const [selectedIds, setSelectedIds] = useState([]);
   const [servings, setServings] = useState(1);
+  const [submissionError, setSubmissionError] = useState("");
+  const [pending, setPending] = useState(false);
+  const submittingRef = useRef(false);
+  const requestClose = useCallback(() => {
+    if (!submittingRef.current) onClose();
+  }, [onClose]);
+  const dialogRef = useDialogFocus(open, requestClose);
 
   useEffect(() => {
     if (open) {
@@ -45,6 +54,7 @@ export default function AddMealModal({
       setCourseFilter("all");
       setServings(1);
       setMeal(initialMeal || "Lunch");
+      setSubmissionError("");
     }
   }, [open, initialMeal, initialRecipeId]);
 
@@ -79,27 +89,44 @@ export default function AddMealModal({
     [selectedRecipes, servings],
   );
 
-  const sodiumTarget = profile?.sodiumTargetMg || 2000;
-  const proteinMin = profile?.proteinMinG || 0;
-  const proteinMax = profile?.proteinMaxG || 70;
+  const sodiumTarget = Number.isFinite(Number(profile?.sodiumTargetMg)) && Number(profile.sodiumTargetMg) > 0
+    ? Number(profile.sodiumTargetMg)
+    : null;
+  const proteinTargetsValid = hasValidProteinTargets(profile);
+  const proteinMin = proteinTargetsValid ? Number(profile.proteinMinG) : null;
+  const proteinMax = proteinTargetsValid ? Number(profile.proteinMaxG) : null;
   const combined = {
     sodium: (todayTotals.upper?.sodium ?? todayTotals.sodium) + selectedNutrition.sodium,
     protein: (todayTotals.upper?.protein ?? todayTotals.protein) + selectedNutrition.protein,
   };
-  const sodiumOver = combined.sodium > sodiumTarget;
-  const proteinOver = combined.protein > proteinMax;
+  const sodiumOver = sodiumTarget !== null && combined.sodium > sodiumTarget;
+  const proteinOver = proteinTargetsValid && combined.protein > proteinMax;
 
   if (!open) return null;
 
   const toggleRecipe = (recipeId) => {
+    if (submittingRef.current) return;
     setSelectedIds((current) => current.includes(recipeId)
       ? current.filter((id) => id !== recipeId)
       : [...current, recipeId]);
   };
 
-  const handleAdd = () => {
-    if (!selectedRecipes.length) return;
-    onAdd(selectedRecipes.map((recipe) => ({ recipeId: recipe.id, servings, meal })));
+  const handleAdd = async () => {
+    if (!selectedRecipes.length || submittingRef.current) return;
+    submittingRef.current = true;
+    setPending(true);
+    setSubmissionError("");
+    try {
+      const saved = await onAdd(selectedRecipes.map((recipe) => ({ recipeId: recipe.id, servings, meal })));
+      if (saved === false) return;
+      submittingRef.current = false;
+      onClose();
+    } catch {
+      setSubmissionError("Changes could not be saved. Try again.");
+    } finally {
+      submittingRef.current = false;
+      setPending(false);
+    }
   };
 
   const recipeFitLabel = (recipe, chosen) => {
@@ -109,72 +136,75 @@ export default function AddMealModal({
       protein: combined.protein + nutrients.protein,
     };
     const over = [];
-    if (projected.sodium > sodiumTarget) over.push("sodium");
-    if (projected.protein > proteinMax) over.push("protein");
+    if (sodiumTarget !== null && projected.sodium > sodiumTarget) over.push("sodium");
+    if (proteinTargetsValid && projected.protein > proteinMax) over.push("protein");
     if (over.length) return { text: `${chosen ? "Selected · over" : "Would exceed"} ${over.join(" & ")}`, danger: true };
+    if (!proteinTargetsValid) return { text: "Protein targets need review", danger: true };
     return { text: chosen ? "Selected · within limits" : "Fits today’s remaining limits", danger: false };
   };
 
   return (
-    <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
-      <section className="meal-modal" role="dialog" aria-modal="true" aria-labelledby="add-meal-title" onMouseDown={(event) => event.stopPropagation()}>
+    <div className="modal-backdrop" role="presentation" onMouseDown={requestClose}>
+      <section ref={dialogRef} className="meal-modal" role="dialog" aria-modal="true" aria-labelledby="add-meal-title" tabIndex="-1" aria-busy={pending} onMouseDown={(event) => event.stopPropagation()}>
         <header className="modal-header">
           <h2 id="add-meal-title">Add a meal</h2>
-          <button className="icon-button" type="button" onClick={onClose} aria-label="Close add meal dialog"><X /></button>
+          <button className="icon-button" type="button" disabled={pending} onClick={requestClose} aria-label="Close add meal dialog"><X /></button>
         </header>
 
         <label className="search-field">
           <Search size={21} strokeWidth={1.8} aria-hidden="true" />
-          <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={`Search ${recipes.length} recipes`} autoFocus />
+          <input data-dialog-initial-focus disabled={pending} value={search} onChange={(event) => setSearch(event.target.value)} placeholder={`Search ${recipes.length} recipes`} />
         </label>
 
         <section className="selection-progress" aria-label="Selected recipes and today’s logged totals">
           <header>
             <div><strong>Selected recipes</strong><small>{selectedRecipes.length ? `${selectedRecipes.length} selected · ${formatAmount(servings, 1)} serving${servings === 1 ? "" : "s"} each` : "Select recipes to preview the combined total"}</small></div>
             {(sodiumOver || proteinOver) && <span className="selection-warning">Over target</span>}
+            {!proteinTargetsValid && <span className="selection-warning">Targets need review</span>}
           </header>
           <div className="selection-progress-grid">
             <CompactProgress
               label="Sodium"
               value={combined.sodium}
               unit="mg"
-              max={sodiumTarget}
-              displayMax={`${formatAmount(sodiumTarget)} mg max`}
+              max={sodiumTarget ?? 0}
+              displayMax={sodiumTarget === null ? "Target needs review" : `${formatAmount(sodiumTarget)} mg max`}
               danger={sodiumOver}
-              status={sodiumOver ? `${formatAmount(combined.sodium - sodiumTarget, 1)} mg over` : `${formatAmount(sodiumTarget - combined.sodium, 1)} mg remaining`}
+              warning={sodiumTarget === null}
+              status={sodiumTarget === null ? "Target needs review" : sodiumOver ? `${formatAmount(combined.sodium - sodiumTarget, 1)} mg over` : `${formatAmount(sodiumTarget - combined.sodium, 1)} mg remaining`}
             />
             <CompactProgress
               label="Protein"
               value={combined.protein}
               unit="g"
-              max={proteinMax}
-              displayMax={`${formatAmount(proteinMin)}–${formatAmount(proteinMax)} g`}
-              marker={proteinMax ? (proteinMin / proteinMax) * 100 : 0}
+              max={proteinMax ?? 0}
+              displayMax={proteinTargetsValid ? `${formatAmount(proteinMin)}–${formatAmount(proteinMax)} g` : "Targets need review"}
+              marker={proteinTargetsValid ? (proteinMin / proteinMax) * 100 : undefined}
               danger={proteinOver}
-              warning={combined.protein < proteinMin}
-              status={proteinOver ? `${formatAmount(combined.protein - proteinMax, 1)} g over` : todayTotals.estimatedCount > 0 ? "Includes estimates" : combined.protein < proteinMin ? `${formatAmount(proteinMin - combined.protein, 1)} g to minimum` : "Within range"}
+              warning={!proteinTargetsValid || combined.protein < proteinMin}
+              status={!proteinTargetsValid ? "Targets need review" : proteinOver ? `${formatAmount(combined.protein - proteinMax, 1)} g over` : todayTotals.estimatedCount > 0 ? "Includes estimates" : combined.protein < proteinMin ? `${formatAmount(proteinMin - combined.protein, 1)} g to minimum` : "Within range"}
             />
           </div>
         </section>
 
         <fieldset className="meal-choice">
           <legend>Meal</legend>
-          <div>{meals.map((option) => <button className={meal === option ? "selected" : ""} type="button" key={option} onClick={() => setMeal(option)}>{option}</button>)}</div>
+          <div>{meals.map((option) => <button className={meal === option ? "selected" : ""} type="button" disabled={pending} key={option} onClick={() => setMeal(option)}>{option}</button>)}</div>
         </fieldset>
 
         <div className="filter-group">
           <span>Course</span>
           <div className="course-filter-row" aria-label="Recipe course filters">
             {courseFilters.map((option) => (
-              <button type="button" key={option.value} className={courseFilter === option.value ? "selected" : ""} onClick={() => setCourseFilter(option.value)}>{option.label}</button>
+              <button type="button" disabled={pending} key={option.value} className={courseFilter === option.value ? "selected" : ""} onClick={() => setCourseFilter(option.value)}>{option.label}</button>
             ))}
           </div>
         </div>
 
         <div className="filter-row" aria-label="Nutrition filters">
-          <button type="button" className={dietFilter === "all" ? "selected" : ""} onClick={() => setDietFilter("all")}>All nutrition</button>
-          <button type="button" className={dietFilter === "low" ? "selected" : ""} onClick={() => setDietFilter("low")}>Low sodium</button>
-          <button type="button" className={dietFilter === "protein" ? "selected" : ""} onClick={() => setDietFilter("protein")}>Higher protein</button>
+          <button type="button" disabled={pending} className={dietFilter === "all" ? "selected" : ""} onClick={() => setDietFilter("all")}>All nutrition</button>
+          <button type="button" disabled={pending} className={dietFilter === "low" ? "selected" : ""} onClick={() => setDietFilter("low")}>Low sodium</button>
+          <button type="button" disabled={pending} className={dietFilter === "protein" ? "selected" : ""} onClick={() => setDietFilter("protein")}>Higher protein</button>
         </div>
 
         <div className="recipe-results" aria-live="polite">
@@ -184,7 +214,7 @@ export default function AddMealModal({
             const fit = recipeFitLabel(recipe, chosen);
             const details = recipeDetails[recipe.id];
             return (
-              <button type="button" aria-pressed={chosen} className={`recipe-result ${chosen ? "selected" : ""}`} key={recipe.id} onClick={() => toggleRecipe(recipe.id)}>
+              <button type="button" disabled={pending} aria-pressed={chosen} className={`recipe-result ${chosen ? "selected" : ""}`} key={recipe.id} onClick={() => toggleRecipe(recipe.id)}>
                 {image ? <img src={image} alt="" loading="lazy" decoding="async" /> : <span className="recipe-placeholder">{recipe.name.slice(0, 1)}</span>}
                 <span className="recipe-result-copy">
                   <strong>{recipe.name}</strong>
@@ -203,19 +233,19 @@ export default function AddMealModal({
 
         <footer className="meal-modal-footer">
           {todayTotals.estimatedCount > 0 && <p className="field-note">Upper-limit checks use the high end of your logged estimates. Protein adequacy is not confirmed here.</p>}
-          {saveError && <p className="storage-alert" role="alert">{saveError}</p>}
+          {(submissionError || saveError) && <p className="storage-alert" role="alert">{submissionError || saveError}</p>}
           <div className="serving-row">
             <span>Servings for each selected recipe</span>
             <div className="stepper">
-              <button type="button" onClick={() => setServings((value) => Math.max(0.5, value - 0.5))} aria-label="Decrease servings"><Minus size={18} /></button>
+              <button type="button" disabled={pending} onClick={() => setServings((value) => Math.max(0.5, value - 0.5))} aria-label="Decrease servings"><Minus size={18} /></button>
               <strong>{formatAmount(servings, 1)}</strong>
-              <button type="button" onClick={() => setServings((value) => Math.min(10, value + 0.5))} aria-label="Increase servings"><Plus size={18} /></button>
+              <button type="button" disabled={pending} onClick={() => setServings((value) => Math.min(10, value + 0.5))} aria-label="Increase servings"><Plus size={18} /></button>
             </div>
           </div>
           <div className={`contribution ${sodiumOver || proteinOver ? "danger" : ""}`}>
             {selectedRecipes.length ? <>{selectedRecipes.length} recipe{selectedRecipes.length === 1 ? "" : "s"} add <strong>{formatAmount(selectedNutrition.sodium, 1)} mg sodium</strong> and <strong>{formatAmount(selectedNutrition.protein, 1)} g protein</strong></> : "Choose one or more recipes"}
           </div>
-          <div className="modal-actions"><button type="button" className="primary-button" disabled={!selectedRecipes.length} onClick={handleAdd}>Add {selectedRecipes.length || ""} {selectedRecipes.length === 1 ? "recipe" : "recipes"} to today</button><button type="button" className="secondary-button" onClick={onClose}>Cancel</button></div>
+          <div className="modal-actions"><button type="button" className="primary-button" disabled={pending || !selectedRecipes.length} onClick={handleAdd}>{pending ? "Saving…" : `Add ${selectedRecipes.length || ""} ${selectedRecipes.length === 1 ? "recipe" : "recipes"} to today`}</button><button type="button" className="secondary-button" disabled={pending} onClick={requestClose}>Cancel</button></div>
         </footer>
       </section>
     </div>

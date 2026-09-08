@@ -12,7 +12,7 @@ import {
   Target,
   Utensils,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import AddMealModal from "./components/AddMealModal";
 import CustomFoodModal from "./components/CustomFoodModal";
 import HistoryView from "./components/HistoryView";
@@ -29,6 +29,8 @@ import { defaultProfile, recipeImages } from "./data/seed";
 import { mealTimes, nextSortOrder, normalizeEntryOrder, reorderMealEntries } from "./utils/meals";
 import { formatAmount, localDateKey, mealTotals, mealTotalBounds } from "./utils/nutrition";
 import { daySignature, isDayComplete } from "./utils/recording";
+import { saveSnapshot } from "./utils/storage";
+import { normalizeProfileDraft } from "./utils/profile";
 
 const appStorageKey = "clearplate-adpkd-mvp-v3";
 const detailReturnLabels = {
@@ -37,18 +39,24 @@ const detailReturnLabels = {
   recipes: "recipes",
 };
 
-function loadInitialState() {
+function loadInitialState(rawOverride) {
+  let raw = null;
   try {
-    const saved = JSON.parse(localStorage.getItem(appStorageKey));
-    if (saved?.profile && Array.isArray(saved.entries)) return { ...saved, entries: normalizeEntryOrder(saved.entries) };
+    raw = rawOverride === undefined ? localStorage.getItem(appStorageKey) : rawOverride;
+    const saved = JSON.parse(raw);
+    if (saved?.profile && Array.isArray(saved.entries)) return {
+      ...saved, raw, profile: normalizeProfileDraft(saved.profile), entries: normalizeEntryOrder(saved.entries),
+    };
   } catch {
     // Start without invented meals if no usable saved record is available.
   }
-  return { profile: defaultProfile, entries: [] };
+  return { profile: defaultProfile, entries: [], raw };
 }
 
 export default function App() {
   const initial = useMemo(loadInitialState, []);
+  const savedRaw = useRef(initial.raw);
+  const saving = useRef(false);
   const [activeTab, setActiveTab] = useState("today");
   const [profile, setProfile] = useState(initial.profile);
   const [entries, setEntries] = useState(initial.entries);
@@ -80,25 +88,41 @@ export default function App() {
   const totals = useMemo(() => ({ ...mealTotals(todayEntries, recipesById), ...mealTotalBounds(todayEntries, recipesById) }), [recipesById, todayEntries]);
   const complete = isDayComplete(dayRecords, entries, today);
 
-  const persist = (nextProfile, nextEntries, nextDayRecords = dayRecords) => {
+  const persist = async (nextProfile, nextEntries, nextDayRecords = dayRecords) => {
+    if (saving.current) return false;
+    saving.current = true;
     try {
-      localStorage.setItem(appStorageKey, JSON.stringify({ profile: nextProfile, entries: nextEntries, dayRecords: nextDayRecords }));
+      const result = await saveSnapshot(localStorage, navigator.locks, appStorageKey, savedRaw.current,
+        { profile: nextProfile, entries: nextEntries, dayRecords: nextDayRecords });
+      savedRaw.current = result.raw;
+      if (result.status === "conflict") {
+        const latest = loadInitialState(result.raw);
+        setProfile(latest.profile);
+        setEntries(latest.entries);
+        setDayRecords(latest.dayRecords || {});
+        setStorageError("Another tab changed your records. The latest saved records are now loaded; your input is still here. Review the changes, then save again to apply your input.");
+        return false;
+      }
       setStorageError("");
       return true;
     } catch {
-      setStorageError("Changes could not be saved on this device. Your previous records are unchanged. Check browser storage and try again.");
+      setStorageError(!navigator.locks?.request
+        ? "This browser cannot safely coordinate saves between tabs. Open this app over HTTPS or localhost in a browser that supports Web Locks. Your previous records are unchanged."
+        : "Changes could not be saved on this device. Your previous records are unchanged. Check browser storage and try again.");
       return false;
+    } finally {
+      saving.current = false;
     }
   };
 
-  const toggleComplete = () => {
+  const toggleComplete = async () => {
     const next = { ...dayRecords, [today]: complete ? null : {
       completedAt: new Date().toISOString(), signature: daySignature(entries, today), profile: { ...profile },
     } };
-    if (persist(profile, entries, next)) setDayRecords(next);
+    if (await persist(profile, entries, next)) setDayRecords(next);
   };
 
-  const addRecipes = (items) => {
+  const addRecipes = async (items) => {
     const nextByMeal = new Map();
     const nextItems = items.map(({ recipeId, servings, meal }, index) => {
       const sortOrder = nextByMeal.get(meal) ?? nextSortOrder(entries, today, meal);
@@ -115,13 +139,13 @@ export default function App() {
       };
     });
     const next = [...entries, ...nextItems];
-    if (!persist(profile, next)) return false;
+    if (!await persist(profile, next)) return false;
     setEntries(next);
     setMealDialog({ open: false, recipeId: null, initialMeal: null });
     setActiveTab("today");
   };
 
-  const addCustomFood = ({ customFood, servings, meal }) => {
+  const addCustomFood = async ({ customFood, servings, meal }) => {
     const next = [...entries, {
       id: `outside-${Date.now()}`,
       date: today,
@@ -132,25 +156,25 @@ export default function App() {
       time: mealTimes[meal],
       sortOrder: nextSortOrder(entries, today, meal),
     }];
-    if (!persist(profile, next)) return false;
+    if (!await persist(profile, next)) return false;
     setEntries(next);
     setActiveTab("today");
     return true;
   };
 
-  const removeEntry = (id) => {
+  const removeEntry = async (id) => {
     const next = entries.filter((entry) => entry.id !== id);
-    if (!persist(profile, next)) return false;
+    if (!await persist(profile, next)) return false;
     setEntries(next);
   };
 
-  const saveProfile = (nextProfile) => {
-    if (!persist(nextProfile, entries)) return false;
+  const saveProfile = async (nextProfile) => {
+    if (!await persist(nextProfile, entries)) return false;
     setProfile(nextProfile);
     setProfileOpen(false);
   };
 
-  const addPlan = (items) => {
+  const addPlan = async (items) => {
     const mealNames = ["Breakfast", "Lunch", "Dinner", "Snack"];
     const nextByMeal = new Map();
     const nextItems = items.map((item, index) => {
@@ -169,7 +193,7 @@ export default function App() {
       };
     });
     const next = [...entries, ...nextItems];
-    if (!persist(profile, next)) return false;
+    if (!await persist(profile, next)) return false;
     setEntries(next);
     setActiveTab("today");
   };
@@ -189,10 +213,10 @@ export default function App() {
     setMealDialog({ open: true, recipeId, initialMeal });
   };
 
-  const reorderMealEntry = ({ entryId, targetMeal, targetEntryId = null, targetIndex = null }) => {
+  const reorderMealEntry = async ({ entryId, targetMeal, targetEntryId = null, targetIndex = null }) => {
     const next = reorderMealEntries(entries, today, { entryId, targetMeal, targetEntryId, targetIndex });
     if (next === entries) return;
-    if (!persist(profile, next)) return false;
+    if (!await persist(profile, next)) return false;
     setEntries(next);
   };
 

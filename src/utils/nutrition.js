@@ -3,18 +3,46 @@ export const round = (value, digits = 1) => {
   return Math.round((Number(value) || 0) * factor) / factor;
 };
 
-export const formatAmount = (value, digits = 0) =>
-  new Intl.NumberFormat("en-US", {
+const isUnknown = (value) => value === null
+  || value === undefined
+  || (typeof value === "string" && value.trim() === "")
+  || !Number.isFinite(Number(value));
+
+export const formatAmount = (value, digits = 0) => isUnknown(value)
+  ? "Unknown"
+  : new Intl.NumberFormat("en-US", {
     maximumFractionDigits: digits,
     minimumFractionDigits: 0,
-  }).format(Number(value) || 0);
+  }).format(Number(value));
+
+export function parseNutrientValues(values = {}) {
+  const result = {};
+  for (const key of ["calories", "protein", "sodium"]) {
+    if (isUnknown(values[key]) || Number(values[key]) < 0) return null;
+    result[key] = Number(values[key]);
+  }
+  for (const key of ["potassium", "phosphorus"]) {
+    if (values[key] === null || values[key] === undefined || String(values[key]).trim() === "") {
+      result[key] = null;
+    } else if (!Number.isFinite(Number(values[key])) || Number(values[key]) < 0) {
+      return null;
+    } else {
+      result[key] = Number(values[key]);
+    }
+  }
+  return result;
+}
 
 export const nutritionFor = (recipe, servings = 1) => {
   // Older records stored an inflated estimate alongside the original values.
   const values = recipe.method === "unpackaged" && recipe.baseEstimate ? recipe.baseEstimate : recipe;
   return Object.fromEntries(["calories", "protein", "sodium", "potassium", "phosphorus"]
-    .map((key) => [key, round(values[key] * servings, 1)]));
+    .map((key) => [key, isUnknown(values[key]) ? null : round(Number(values[key]) * servings, 1)]));
 };
+
+const addNutritionValue = (current, amount) => current === null || amount === null
+  ? null
+  : round(current + amount, 1);
 
 export function mealTotalBounds(meals, recipesById) {
   const lower = { calories: 0, protein: 0, sodium: 0, potassium: 0, phosphorus: 0 };
@@ -28,8 +56,8 @@ export function mealTotalBounds(meals, recipesById) {
     if (estimated) estimatedCount += 1;
     const nutrition = nutritionFor(food, meal.servings);
     for (const key of Object.keys(lower)) {
-      lower[key] = round(lower[key] + nutrition[key] * (1 - margin), 1);
-      upper[key] = round(upper[key] + nutrition[key] * (1 + margin), 1);
+      lower[key] = addNutritionValue(lower[key], nutrition[key] === null ? null : nutrition[key] * (1 - margin));
+      upper[key] = addNutritionValue(upper[key], nutrition[key] === null ? null : nutrition[key] * (1 + margin));
     }
   }
   return { lower, upper, estimatedCount };
@@ -42,11 +70,11 @@ export const mealTotals = (meals, recipesById) =>
       if (!recipe) return totals;
       const amount = nutritionFor(recipe, meal.servings);
       return {
-        calories: round(totals.calories + amount.calories, 1),
-        protein: round(totals.protein + amount.protein, 1),
-        sodium: round(totals.sodium + amount.sodium, 1),
-        potassium: round(totals.potassium + amount.potassium, 1),
-        phosphorus: round(totals.phosphorus + amount.phosphorus, 1),
+        calories: addNutritionValue(totals.calories, amount.calories),
+        protein: addNutritionValue(totals.protein, amount.protein),
+        sodium: addNutritionValue(totals.sodium, amount.sodium),
+        potassium: addNutritionValue(totals.potassium, amount.potassium),
+        phosphorus: addNutritionValue(totals.phosphorus, amount.phosphorus),
       };
     },
     { calories: 0, protein: 0, sodium: 0, potassium: 0, phosphorus: 0 },

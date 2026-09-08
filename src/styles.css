@@ -22,7 +22,7 @@
 }
 
 * { box-sizing: border-box; }
-html { min-width: 320px; background: #fff; }
+html { min-width: 320px; background: #fff; scrollbar-gutter: stable; }
 body { margin: 0; min-width: 320px; min-height: 100vh; background: #fff; }
 button, input, select { font: inherit; }
 button, a { -webkit-tap-highlight-color: transparent; }
@@ -89,6 +89,8 @@ h1, h2, h3, p { margin-top: 0; }
 .range-marker { position: absolute; top: -5px; height: 18px; border-left: 2px solid rgba(24, 54, 37, 0.55); }
 .progress-labels { display: flex; justify-content: space-between; gap: 8px; margin-top: 7px; color: #536159; font-size: 12px; }
 .nutrient-status { display: flex; align-items: center; justify-content: flex-end; gap: 8px; font-size: 14px; font-weight: 650; white-space: nowrap; }
+.nutrient-status > span { display: grid; gap: 2px; }
+.nutrient-status small { color: var(--muted); font-size: 11px; font-weight: 550; }
 
 .today-meals { margin-top: 18px; }
 .today-meals h2, .idea-list h2, .plan-summary h2 { margin-bottom: 11px; color: #121d17; font-size: 20px; letter-spacing: -0.3px; }
@@ -353,10 +355,10 @@ h1, h2, h3, p { margin-top: 0; }
 .table-add:hover { background: var(--green-50); }
 .library-note, .history-privacy { margin: 16px 0 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
 
-.history-calendar-page { max-width: 1536px; display: grid; grid-template-columns: minmax(540px, 0.96fr) minmax(0, 1.04fr); gap: 24px; padding: 24px; background: #f7faf8; }
-.history-calendar-panel, .history-report-panel { min-width: 0; border: 1px solid var(--border); border-radius: 14px; background: #fff; box-shadow: 0 7px 24px rgba(18, 44, 29, 0.05); }
+.history-calendar-page { max-width: 1536px; display: grid; grid-template-columns: minmax(540px, 0.96fr) minmax(0, 1.04fr); gap: 24px; padding: 24px; background: #fff; }
+.history-calendar-panel, .history-report-panel { min-width: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
 .history-calendar-panel { padding: 24px 22px 20px; }
-.history-report-panel { padding: 26px 28px 22px; }
+.history-report-panel { padding: 26px 28px 22px; border-left: 1px solid var(--border); }
 .history-panel-heading h1 { margin-bottom: 5px; font-size: 29px; letter-spacing: -0.7px; }
 .history-panel-heading p, .history-report-heading p { margin-bottom: 0; color: var(--muted); font-size: 13px; }
 .history-month-controls { min-height: 52px; margin-top: 17px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; }
@@ -392,7 +394,7 @@ h1, h2, h3, p { margin-top: 0; }
 @keyframes history-check-draw { to { stroke-dashoffset: 0; } }
 .history-calendar-legend { min-height: 44px; display: flex; align-items: center; justify-content: center; gap: 20px; color: #4d5a53; font-size: 10px; }
 .history-calendar-legend > span { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
-.history-month-summary { min-height: 70px; display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--border); border-radius: 10px; background: #fbfdfc; }
+.history-month-summary { min-height: 70px; display: grid; grid-template-columns: repeat(3, 1fr); border-block: 1px solid var(--border); background: transparent; }
 .history-month-summary > span { min-width: 0; padding: 10px 14px; display: grid; grid-template-columns: 46px auto; grid-template-rows: auto auto; align-items: center; column-gap: 8px; }
 .history-month-summary > span + span { border-left: 1px solid var(--border); }
 .history-month-summary > span > svg { grid-row: 1 / 3; color: var(--green-700); }
@@ -401,7 +403,7 @@ h1, h2, h3, p { margin-top: 0; }
 .history-report-heading > span { color: var(--green-700); font-size: 11px; font-weight: 730; text-transform: uppercase; letter-spacing: 0.5px; }
 .history-report-heading h2 { margin: 8px 0 4px; font-size: 29px; letter-spacing: -0.7px; }
 .history-nutrition-grid { margin-top: 28px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-.history-nutrition-card { min-width: 0; min-height: 150px; padding: 19px 17px; border: 1px solid var(--border); border-radius: 10px; background: #fff; }
+.history-nutrition-card { min-width: 0; min-height: 150px; padding: 19px 17px; border: 0; border-radius: 16px; background: var(--green-50); }
 .history-nutrition-card > span, .history-nutrition-card > strong, .history-nutrition-card > small { display: block; }
 .history-nutrition-card > span { font-size: 12px; font-weight: 700; }
 .history-nutrition-card > strong { margin-top: 20px; font-size: clamp(17px, 1.7vw, 23px); line-height: 1.15; white-space: nowrap; }
@@ -412,7 +414,7 @@ h1, h2, h3, p { margin-top: 0; }
 .history-meals-report > header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .history-meals-report h3 { margin-bottom: 10px; font-size: 20px; letter-spacing: -0.3px; }
 .history-meals-report > header > span { color: var(--muted); font-size: 11px; }
-.history-meal-report-list { overflow: hidden; border: 1px solid var(--border); border-radius: 10px; }
+.history-meal-report-list { overflow: hidden; border-block: 1px solid var(--border); }
 .history-meal-report-row { min-height: 68px; padding: 8px 14px; display: grid; grid-template-columns: 42px minmax(100px, 1fr) repeat(3, minmax(68px, 0.55fr)); gap: 10px; align-items: center; }
 .history-meal-report-row + .history-meal-report-row { border-top: 1px solid var(--border); }
 .history-meal-report-icon { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; color: var(--green-700); background: var(--green-100); }
@@ -424,12 +426,13 @@ h1, h2, h3, p { margin-top: 0; }
 .history-report-empty svg { width: 36px; height: 36px; margin-bottom: 12px; color: #8aa898; }
 .history-report-empty strong { color: #334239; font-size: 14px; }
 .history-report-empty p { margin: 6px 0 0; font-size: 11px; }
-.history-report-note { margin: 28px 0 0; padding: 14px 15px; border: 1px solid #dce7e1; border-radius: 9px; display: flex; align-items: flex-start; gap: 10px; color: #486258; background: #f7faf8; font-size: 11px; line-height: 1.45; }
+.history-report-note { margin: 28px 0 0; padding: 14px 15px; border-left: 3px solid #a5c9b4; display: flex; align-items: flex-start; gap: 10px; color: #486258; background: #f7faf8; font-size: 11px; line-height: 1.45; }
 .history-report-note svg { width: 18px; height: 18px; flex: 0 0 auto; color: var(--green-700); }
 .history-calendar-page .history-privacy { margin-top: 12px; }
 
 @media (max-width: 1120px) {
-  .history-calendar-page { grid-template-columns: 1fr; }
+  .history-calendar-page { grid-template-columns: minmax(0, 1fr); }
+  .history-report-panel { border-left: 0; border-top: 1px solid var(--border); }
 }
 
 .planner-controls { min-height: 90px; padding: 16px 18px; display: grid; grid-template-columns: minmax(420px, 1.4fr) 220px minmax(320px, 1fr); gap: 22px; align-items: end; border: 1px solid var(--border); border-radius: 12px; }
@@ -536,6 +539,7 @@ h1, h2, h3, p { margin-top: 0; }
 }
 
 @media (max-width: 720px) {
+  html, body { min-width: 0; }
   .topbar { padding: 0 16px; }
   .brand { font-size: 22px; }
   .brand svg { width: 27px; height: 27px; }
@@ -599,26 +603,51 @@ h1, h2, h3, p { margin-top: 0; }
   .library-toolbar > span { text-align: left; }
   .page-heading { display: block; }
   .page-heading .secondary-button { margin-top: 14px; }
-  .history-calendar-page { gap: 14px; padding: 16px; }
-  .history-calendar-panel, .history-report-panel { padding: 18px 14px; }
-  .history-calendar-day, .history-calendar-blank { min-height: 78px; }
-  .history-calendar-day { padding: 6px 4px; }
-  .history-calendar-values small { font-size: 8px; }
-  .history-status-icon-small { width: 19px; height: 19px; }
-  .history-calendar-legend { gap: 9px; font-size: 8px; }
-  .history-month-summary > span { padding: 9px 7px; grid-template-columns: 34px auto; column-gap: 5px; }
-  .history-status-icon-summary { width: 31px; height: 31px; }
-  .history-month-summary > span > strong { font-size: 17px; }
-  .history-month-summary > span > small { font-size: 8px; }
-  .history-nutrition-grid { grid-template-columns: 1fr; gap: 9px; margin-top: 20px; }
-  .history-nutrition-card { min-height: 0; padding: 15px; }
-  .history-nutrition-card > strong { margin-top: 10px; }
-  .history-meal-report-row { grid-template-columns: 38px repeat(3, 1fr); gap: 7px; padding: 11px; }
-  .history-meal-report-row > div { grid-column: 2 / -1; }
+  .history-calendar-page { width: 100%; gap: 32px; padding: 28px 20px; }
+  .history-calendar-panel, .history-report-panel { width: 100%; padding: 0; }
+  .history-report-panel { padding-top: 28px; }
+  .history-panel-heading h1 { font-size: 27px; }
+  .history-panel-heading p, .history-report-heading p { font-size: 14px; line-height: 1.5; }
+  .history-month-controls { grid-template-columns: 44px 1fr auto; gap: 6px; margin-bottom: 8px; }
+  .history-month-controls > strong { font-size: 16px; }
+  .history-month-controls > div { gap: 4px; }
+  .history-month-controls > button, .history-month-controls > div > button { min-width: 44px; height: 44px; }
+  .history-month-controls .history-today-button { min-width: 52px; padding-inline: 6px; font-size: 13px; }
+  .history-weekdays { font-size: 13px; }
+  .history-calendar-grid { gap: 3px; border: 0; background: transparent; overflow: visible; }
+  .history-calendar-day, .history-calendar-blank { min-height: 56px; }
+  .history-calendar-day { padding: 7px 2px; border-radius: 8px; align-items: center; justify-content: center; }
+  .history-calendar-day-top { flex-direction: column; gap: 7px; }
+  .history-calendar-day-top b { font-size: 17px; }
+  .history-calendar-day.selected { color: var(--green-900); background: var(--green-100); box-shadow: none; }
+  .history-calendar-values { display: none; }
+  .history-status-icon-small { width: 14px; height: 14px; }
+  .history-calendar-legend { flex-wrap: wrap; justify-content: flex-start; gap: 10px 16px; padding: 14px 0; font-size: 12px; line-height: 1.4; }
+  .history-month-summary > span { padding: 14px 5px; grid-template-columns: 1fr; grid-template-rows: auto auto; justify-items: center; gap: 6px; text-align: center; }
+  .history-month-summary > span > svg { display: none; }
+  .history-month-summary > span > strong { font-size: 23px; }
+  .history-month-summary > span > small { font-size: 12px; line-height: 1.3; }
+  .history-report-heading > span { font-size: 12px; }
+  .history-report-heading h2 { margin-top: 10px; font-size: 26px; line-height: 1.2; }
+  .history-nutrition-grid { grid-template-columns: 1fr; gap: 0; margin-top: 24px; }
+  .history-nutrition-card { min-height: 0; padding: 20px 0; border-radius: 0; background: transparent; border-bottom: 1px solid var(--border); }
+  .history-nutrition-card:first-child { padding-top: 0; }
+  .history-nutrition-card > span { font-size: 15px; }
+  .history-nutrition-card > strong { margin-top: 12px; font-size: 22px; line-height: 1.35; white-space: normal; overflow-wrap: anywhere; }
+  .history-nutrition-card > small { margin-top: 10px; font-size: 13px; line-height: 1.45; }
+  .history-meals-report { margin-top: 26px; }
+  .history-meals-report > header > span { font-size: 13px; }
+  .history-meal-report-row { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px 8px; padding: 20px 0; }
+  .history-meal-report-icon { display: none; }
+  .history-meal-report-row > div { grid-column: 1 / -1; }
+  .history-meal-report-row > div > strong { font-size: 16px; }
   .history-meal-report-row > span:not(.history-meal-report-icon) { grid-row: 2; }
-  .history-meal-report-row > span:nth-of-type(2) { grid-column: 2; }
-  .history-meal-report-row > span:nth-of-type(3) { grid-column: 3; }
-  .history-meal-report-row > span:nth-of-type(4) { grid-column: 4; }
+  .history-meal-report-row > span:nth-of-type(2) { grid-column: 1; }
+  .history-meal-report-row > span:nth-of-type(3) { grid-column: 2; }
+  .history-meal-report-row > span:nth-of-type(4) { grid-column: 3; }
+  .history-meal-report-row strong { font-size: 14px; overflow-wrap: anywhere; }
+  .history-meal-report-row small { font-size: 12px; }
+  .history-report-note, .history-calendar-page .history-privacy, .history-report-empty p { font-size: 13px; line-height: 1.55; }
   .planner-controls, .plan-variants, .plan-summary-grid { grid-template-columns: 1fr; }
   .meal-selector { grid-template-columns: repeat(2, 1fr); }
   .plan-totals { grid-template-columns: repeat(3, 1fr); }

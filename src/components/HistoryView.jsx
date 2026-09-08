@@ -13,6 +13,7 @@ import {
 import { useMemo, useState } from "react";
 import { buildCalendarMonth, historyDayStatus } from "../utils/history";
 import { formatAmount, localDateKey, mealTotals } from "../utils/nutrition";
+import { hasValidProteinTargets } from "../utils/profile";
 import { isDayComplete } from "../utils/recording";
 
 const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -132,14 +133,17 @@ export default function HistoryView({ entries, recipesById, profile: currentProf
   const sodiumProgress = profile.sodiumTargetMg > 0
     ? (selectedReport.totals.sodium / profile.sodiumTargetMg) * 100
     : 0;
-  const proteinProgress = profile.proteinMaxG > 0
+  const proteinTargetsValid = hasValidProteinTargets(profile);
+  const proteinProgress = proteinTargetsValid
     ? (selectedReport.totals.protein / profile.proteinMaxG) * 100
-    : 0;
+    : undefined;
   const sodiumStatus = selectedReport.items.length
     ? (selectedReport.totals.sodium <= profile.sodiumTargetMg ? "Within recorded limit" : "Above recorded limit")
     : "No foods recorded";
   const proteinStatus = selectedReport.items.length
-    ? (selectedReport.totals.protein < profile.proteinMinG
+    ? (!proteinTargetsValid
+      ? "Targets need review"
+      : selectedReport.totals.protein < profile.proteinMinG
       ? `${formatAmount(profile.proteinMinG - selectedReport.totals.protein, 1)} g below range`
       : selectedReport.totals.protein > profile.proteinMaxG
         ? `${formatAmount(selectedReport.totals.protein - profile.proteinMaxG, 1)} g above range`
@@ -151,7 +155,7 @@ export default function HistoryView({ entries, recipesById, profile: currentProf
       <section className="history-calendar-panel" aria-labelledby="history-title">
         <header className="history-panel-heading">
           <h1 id="history-title">Food history</h1>
-          <p>See your nutrition pattern day by day.</p>
+          <p>Choose a date to review its meals and nutrition totals.</p>
         </header>
 
         <div className="history-month-controls">

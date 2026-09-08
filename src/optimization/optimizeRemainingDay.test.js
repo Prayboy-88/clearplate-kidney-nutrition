@@ -132,6 +132,28 @@ test("optional potassium limits are ignored until explicitly provided", () => {
   assert.ok(withLimit.plans.every((plan) => plan.totals.potassium <= 200));
 });
 
+test("an enabled optional limit rejects a log with unknown intake", () => {
+  const recipes = [recipe("known", { calories: 400, protein: 20, sodium: 50, potassium: 100 })];
+  const result = optimizeRemainingDay({
+    recipes,
+    loggedTotals: {
+      calories: 300,
+      protein: 15,
+      sodium: 200,
+      potassium: null,
+      phosphorus: null,
+      lower: { protein: 15, potassium: null },
+      upper: { protein: 15, sodium: 200, potassium: null },
+    },
+    targets: { ...baseTargets, potassiumMax: 2000 },
+    selectedMeals: ["Dinner"],
+  });
+
+  assert.equal(result.status, "invalid");
+  assert.equal(result.plans.length, 0);
+  assert.match(result.message, /potassium.*unknown/i);
+});
+
 test("lowest-sodium does not exceed the balanced plan sodium and results are deterministic", () => {
   const recipes = [
     recipe("a", { calories: 500, protein: 25, sodium: 300 }, 5),

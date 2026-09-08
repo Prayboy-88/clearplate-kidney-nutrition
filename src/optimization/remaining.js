@@ -22,6 +22,15 @@ export function calculateRemainingBudget(loggedTotals, targets) {
   const phosphorusMax = targets.phosphorusMax !== null && targets.phosphorusMax !== undefined && Number.isFinite(Number(targets.phosphorusMax))
     ? Number(targets.phosphorusMax)
     : null;
+  const loggedValue = (key, bound) => Object.hasOwn(loggedTotals[bound] || {}, key)
+    ? loggedTotals[bound][key]
+    : loggedTotals[key];
+  const remainingOptionalMaximum = (key, maximum) => {
+    if (maximum === null) return null;
+    const consumed = loggedValue(key, "upper");
+    if (consumed === null || consumed === undefined || consumed === "" || !Number.isFinite(Number(consumed))) return null;
+    return round(maximum - Number(consumed), 1);
+  };
 
   return {
     calories: Number.isFinite(Number(targets.calorieTarget))
@@ -30,8 +39,8 @@ export function calculateRemainingBudget(loggedTotals, targets) {
     sodiumMax: round(sodiumMax - (Number(loggedTotals.upper?.sodium ?? loggedTotals.sodium) || 0), 1),
     proteinMin: round(Math.max(0, proteinMin - (Number(loggedTotals.lower?.protein ?? loggedTotals.protein) || 0)), 1),
     proteinMax: round(proteinMax - (Number(loggedTotals.upper?.protein ?? loggedTotals.protein) || 0), 1),
-    potassiumMax: potassiumMax === null ? null : round(potassiumMax - (Number(loggedTotals.upper?.potassium ?? loggedTotals.potassium) || 0), 1),
-    phosphorusMax: phosphorusMax === null ? null : round(phosphorusMax - (Number(loggedTotals.upper?.phosphorus ?? loggedTotals.phosphorus) || 0), 1),
+    potassiumMax: remainingOptionalMaximum("potassium", potassiumMax),
+    phosphorusMax: remainingOptionalMaximum("phosphorus", phosphorusMax),
   };
 }
 
